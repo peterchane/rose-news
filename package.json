@@ -4,18 +4,31 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "build": "npm test && next build",
+    "start": "next start",
+    "send:test": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/send-test.mts",
+    "check:feeds": "node ./node_modules/tsx/dist/cli.mjs scripts/check-feeds.mts",
+    "feeds:csv": "node ./node_modules/tsx/dist/cli.mjs scripts/feeds-to-csv.mts",
+    "mail:verify": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/verify-mail.mts",
+    "test": "node --env-file-if-exists=.env.local --import ./node_modules/tsx/dist/loader.mjs --test tests/*.test.mts"
   },
   "dependencies": {
+    "@vercel/blob": "^2.6.1",
+    "ai": "^7.0.54",
+    "fast-xml-parser": "^5.10.1",
     "next": "16.3.0",
+    "nodemailer": "^9.0.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5"
+    "tsx": "^4.23.8",
+    "typescript": "^5",
+    "vercel": "^58.7.1"
   }
 }

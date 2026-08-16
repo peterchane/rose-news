@@ -1,0 +1,92 @@
+# Rose's news sources. Edit this file, then run:  npm run check:feeds
+#
+# One feed per line:   section | outlet name | rss url | weight | max age (hours)
+#
+#   section  world, business, tech, science, sports, or usc
+#   outlet   name as it should read in the email
+#   url      the RSS or Atom feed
+#   weight   optional, 0.1-1.0, defaults to 1.0. Higher = preferred as the
+#            link when several outlets cover the same story.
+#   max age  optional, defaults to 30 hours. Raise it for outlets that don't
+#            publish daily, or their stories will never be fresh enough to use.
+#
+# Lines starting with # are ignored. Blank lines are fine.
+#
+# Heads up:
+#   - AP and Reuters no longer publish working public RSS feeds.
+#   - Paywalled outlets work fine, but Rose hits a paywall if she clicks.
+#   - More outlets on one story = higher ranking, so adding a second outlet
+#     with a similar slant amplifies that slant.
+
+
+# ---- United States ----
+# Kept separate from world news with its own quota. Without this, the
+# multi-outlet ranking buries US domestic stories under international ones that
+# every wire service happens to carry.
+us       | NPR                     | https://feeds.npr.org/1003/rss.xml
+us       | The New York Times      | https://rss.nytimes.com/services/xml/rss/nyt/US.xml
+us       | The New York Times      | https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml
+us       | CBS News                | https://www.cbsnews.com/latest/rss/us                        | 0.9
+us       | ABC News                | https://abcnews.go.com/abcnews/usheadlines                   | 0.9
+us       | The Hill                | https://thehill.com/news/feed/                               | 0.8
+
+# ---- World ----
+world    | NPR                     | https://feeds.npr.org/1001/rss.xml
+world    | BBC                     | https://feeds.bbci.co.uk/news/world/rss.xml
+world    | The New York Times      | https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml
+world    | The Guardian            | https://www.theguardian.com/world/rss                        | 0.9
+
+# ---- Business & Economy ----
+business | CNBC                    | https://www.cnbc.com/id/100003114/device/rss/rss.html        | 0.9
+business | The Wall Street Journal | https://feeds.content.dowjones.io/public/rss/RSSWorldNews
+
+# ---- Technology ----
+# Mainstream desks first. Ars Technica is deep but niche — its single-outlet
+# security and hardware stories aren't what "made the national news" means.
+tech     | The New York Times      | https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml  | 1.0
+tech     | CNBC                    | https://www.cnbc.com/id/19854910/device/rss/rss.html         | 0.9
+tech     | BBC                     | https://feeds.bbci.co.uk/news/technology/rss.xml             | 1.0
+tech     | Ars Technica            | https://feeds.arstechnica.com/arstechnica/index              | 0.6
+
+# ---- Science, Health & Climate ----
+science  | The New York Times      | https://rss.nytimes.com/services/xml/rss/nyt/Science.xml
+science  | ScienceDaily            | https://www.sciencedaily.com/rss/top/science.xml             | 0.7
+
+# ---- Sports (US-focused) ----
+# League feeds so Rose's teams (see teams.txt) actually turn up — the top-level
+# feeds alone rarely carry a specific Cubs or Trojans result.
+# 20-hour window: a game from three days ago is not today's sports news.
+sports   | ESPN                    | https://www.espn.com/espn/rss/news                           | 1.0 | 20
+sports   | CBS Sports              | https://www.cbssports.com/rss/headlines/                     | 0.9 | 20
+sports   | Yahoo Sports            | https://sports.yahoo.com/rss/                                | 0.8 | 20
+sports   | ESPN                    | https://www.espn.com/espn/rss/mlb/news                       | 0.9
+sports   | ESPN                    | https://www.espn.com/espn/rss/nfl/news                       | 0.9
+sports   | ESPN                    | https://www.espn.com/espn/rss/ncf/news                       | 0.9
+sports   | CBS Sports              | https://www.cbssports.com/rss/headlines/mlb/                 | 0.8
+sports   | CBS Sports              | https://www.cbssports.com/rss/headlines/college-football/    | 0.8
+
+# ---- USC ----
+# The Daily Trojan publishes weekly during term and rarely over the summer, so
+# these get a 14-day window instead of the usual 30 hours.
+usc      | Daily Trojan            | https://dailytrojan.com/category/news/feed/                  | 1.0 | 336
+usc      | Daily Trojan            | https://dailytrojan.com/category/sports/feed/                | 0.9 | 336
+
+# ---- Good news ----
+# One of these goes in every edition. These outlets publish a few times a week,
+# so they get a 4-day window rather than the usual 30 hours.
+good     | Good News Network       | https://www.goodnewsnetwork.org/feed/                        | 1.0 | 96
+good     | Positive News           | https://www.positive.news/feed/                              | 0.9 | 96
+good     | Reasons to be Cheerful  | https://reasonstobecheerful.world/feed/                      | 0.9 | 96
+good     | Optimist Daily          | https://www.optimistdaily.com/feed/                          | 0.8 | 96
+
+
+# ---- How many stories from each section reach the writer ----
+# Raise a number to make that topic a bigger share of the email.
+quota    | us       | 8
+quota    | world    | 5
+quota    | business | 4
+quota    | tech     | 4
+quota    | science  | 4
+quota    | sports   | 6
+quota    | usc      | 4
+quota    | good     | 3

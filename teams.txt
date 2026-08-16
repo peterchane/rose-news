@@ -1,0 +1,26 @@
+# Teams Rose cares about. Sports stories mentioning any of these get boosted so
+# they win the limited sports slots, and the writer is told to prefer them.
+#
+# One term per line. Matched as a whole word, case-insensitive, against the
+# headline and summary. Add nicknames on their own lines.
+#
+# Delete a line to stop favoring that team. Add one to start.
+#
+# By default you only hear about a team when something notable happens — a
+# trade, a signing, a streak, an injury, a playoff berth. A single game result
+# is not news. Prefix a team with "+" if you DO want every game.
+
+# ---- USC football ----
+# The one she follows closely.
+USC
+Trojans
+
+# ---- Chicago ----
+# Major Cubs news only: trades, signings, streaks, playoffs. Never a box score.
+Cubs
+
+# ---- Other colleges ----
+SMU
+Mustangs
+Michigan
+Wolverines
