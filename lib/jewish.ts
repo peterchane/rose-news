@@ -106,6 +106,12 @@ export function describeHoliday(h: Holiday): string {
  * writer cites it the same way as any other story. Never throws — a calendar
  * outage must not stop the brief.
  */
+/**
+ * How far ahead a holiday is worth mentioning. Announcing Rosh Hashanah every
+ * morning for five weeks is nagging, not a heads-up.
+ */
+export const MENTION_WITHIN_DAYS = 8;
+
 export async function nextHolidayCluster(today: string): Promise<Omit<Cluster, 'id'> | null> {
   try {
     const res = await fetch(HEBCAL, {
@@ -117,6 +123,10 @@ export async function nextHolidayCluster(today: string): Promise<Omit<Cluster, '
     const data = (await res.json()) as { items?: Parameters<typeof pickNextHoliday>[0] };
     const holiday = pickNextHoliday(data.items ?? [], today);
     if (!holiday) return null;
+    if (holiday.daysAway > MENTION_WITHIN_DAYS) {
+      console.log(`[jewish] ${holiday.title} is ${holiday.daysAway} days out; too early to mention`);
+      return null;
+    }
 
     return {
       title: `Upcoming Jewish holiday: ${holiday.title}`,

@@ -203,3 +203,20 @@ test('school violence in the finished prose is fatal, never shipped', () => {
   assert.ok(problems.some((p) => /school violence/.test(p)), problems.join(' | '));
   assert.ok(isFatal(problems.find((p) => /school violence/.test(p))!), 'must block the send');
 });
+
+test('a mid-paragraph pivot now blocks the send', () => {
+  // Raised twice as a reader complaint, so it is no longer merely cosmetic.
+  const b = {
+    ...ok(),
+    paragraphs: [
+      para(9, 10),
+      'Rosh Hashanah arrives Friday and opens the High Holy Days. Meanwhile a stretch of ' +
+        'ocean is becoming a reserve, [protecting fish stocks](#1) for local residents there.',
+      para(3, 4), para(5, 6), para(7, 8),
+    ],
+  };
+  const problems = validateBrief(b, CLUSTERS);
+  const pivot = problems.find((p) => /pivots to a new topic/.test(p));
+  assert.ok(pivot, problems.join(' | '));
+  assert.ok(isFatal(pivot!), 'must trigger a rewrite, not ship');
+});

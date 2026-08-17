@@ -271,8 +271,9 @@ export function selectClusters(
   // Sports is only worth a slot when it's about a team Rose follows. Without
   // this the quota gets filled with whatever was left — a Jets practice injury,
   // a team she has no stake in — purely because the section had room.
+  const anyTeams = Boolean(teamPattern || notableOnlyPattern);
   const relevant = scored.filter((c) => {
-    if (c.section !== 'sports') return true;
+    if (c.section !== 'sports' || !anyTeams) return true;
     const hay = `${c.title} ${c.blurb}`;
     return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));
   });

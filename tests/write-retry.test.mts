@@ -227,21 +227,20 @@ test('fatal problems are distinguished from cosmetic ones', () => {
   assert.ok(isFatal('Paragraph 3 contains a bulleted or numbered list. Rewrite it as prose.'));
   assert.ok(isFatal('Need 5-9 paragraphs, got 3.'));
   assert.ok(!isFatal('Paragraph 5 anchors a link on "more". Anchor on a meaningful phrase.'));
-  assert.ok(!isFatal('Paragraph 6 pivots to a new topic mid-paragraph at "Separately".'));
+  assert.ok(isFatal('Paragraph 6 pivots to a new topic mid-paragraph at "Separately".'), 'now fatal');
   assert.ok(!isFatal('Paragraph 2 is too short (30 words); aim for 40-80.'));
 });
 
 test('a final draft with only cosmetic issues is sent, not discarded', async () => {
-  // A pivot word mid-paragraph: worth a retry, not worth losing the day.
-  const nitty = {
-    ...good,
-    paragraphs: [
-      `The vote passed the chamber on Tuesday after a long debate. Separately, a drone ` +
-        `was found at a German airport and police opened [an investigation](#1). ` +
-        `No arrests have been made. Officials expect more detail this week soon.`,
-      para(3, 4), para(5, 6), para(7, 8), para(9, 10),
-    ],
-  };
+  // A slightly short paragraph is a nit. A mid-paragraph pivot is NOT — that
+  // became fatal after Peter raised it twice as a reader complaint.
+  const short = 'The vote passed on Tuesday after debate. Officials expect [more detail](#1) soon.';
+  const nitty = { ...good, paragraphs: [para(9, 10), short, para(3, 4), para(5, 6), para(7, 8)] };
+  const problems = validateBrief(nitty, clusters);
+  assert.ok(
+    problems.length > 0 && !problems.some(isFatal),
+    `fixture must have a cosmetic-only problem: ${problems.join(' | ')}`,
+  );
   const out = await writeBrief(clusters, null, async () => wrap(nitty));
   assert.equal(out.paragraphs.length, 5, 'sent despite the nit');
 });

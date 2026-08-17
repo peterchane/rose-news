@@ -285,7 +285,7 @@ export function isUnretryable(message: string): boolean {
  * else is a style nit worth one retry but not worth losing the day over.
  */
 export function isFatal(problem: string): boolean {
-  return /not a candidate ID|raw URL|bulleted or numbered list|paragraphs, got|distinct stories cited|school violence/.test(
+  return /not a candidate ID|raw URL|bulleted or numbered list|paragraphs, got|distinct stories cited|school violence|pivots to a new topic/.test(
     problem,
   );
 }

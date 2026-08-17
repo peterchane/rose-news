@@ -91,3 +91,8 @@ test('all eight major holidays do qualify', () => {
     assert.match(h!.link, /chabad\.org/);
   }
 });
+
+test('a holiday far out is not announced every day', async () => {
+  const { MENTION_WITHIN_DAYS } = await import('../lib/jewish');
+  assert.ok(MENTION_WITHIN_DAYS <= 10, 'a month of daily reminders is nagging');
+});
