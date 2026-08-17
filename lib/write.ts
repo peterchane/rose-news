@@ -146,7 +146,7 @@ Content is pre-filtered — crime, death, disease, drugs, disasters and gore nev
 ORDER:
 - The prompt tells you which kind of story to LEAD WITH today. Follow it when a decent candidate exists; if there genuinely isn't one, lead with the biggest news story instead.
 - A good lead is CONCRETE and affects people she can picture — money, jobs, schools, prices, a decision that changes something, a result. A bad lead is procedural or institutional: a lawsuit filed, a hearing scheduled, one agency's dispute with another, an argument about an international body. Those can appear later in the email, but never open it.
-- Sports goes near the top when there's something real about her teams. When there isn't, put general sports lower down or leave it out.
+- Sports only when it's about a team she follows. If no sports candidates are offered, skip sports entirely — never fill the space with a team she has no stake in.
 - After the lead, every US story comes before any foreign one. The lead itself can be foreign if that's genuinely the day's biggest story. Include a major tech story when one is offered.
 - The Jewish holiday gets one or two sentences, near the end.
 - Good news always closes the email.

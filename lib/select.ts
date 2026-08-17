@@ -268,6 +268,15 @@ export function selectClusters(
     };
   });
 
+  // Sports is only worth a slot when it's about a team Rose follows. Without
+  // this the quota gets filled with whatever was left — a Jets practice injury,
+  // a team she has no stake in — purely because the section had room.
+  const relevant = scored.filter((c) => {
+    if (c.section !== 'sports') return true;
+    const hay = `${c.title} ${c.blurb}`;
+    return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));
+  });
+
   // Fill each section's quota by score, but cap any one outlet's share so a
   // high-volume feed (NYT's homepage carries 20+ items) can't crowd out the
   // rest of the section.
@@ -275,7 +284,7 @@ export function selectClusters(
 
   for (const section of SECTION_ORDER) {
     const quota = quotas[section];
-    const pool = scored
+    const pool = relevant
       .filter((c) => c.section === section)
       .sort((a, b) => b.score - a.score);
 

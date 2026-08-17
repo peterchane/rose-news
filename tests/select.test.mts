@@ -197,7 +197,9 @@ test('team preference does not reorder non-sports news', () => {
   assert.match(clusters.filter(c => c.section === 'us')[0].title, /Senate/, 'corroboration still wins for news');
 });
 
-test('no team list configured means no boost at all', () => {
+test('no team list configured means sports is not filtered or boosted', () => {
+  // With no teams set there is nothing to prefer, so corroboration decides and
+  // the relevance filter must not empty the section.
   const withNone = selectClusters(
     [
       article({ title: 'Cubs rally past Brewers', section: 'sports', source: 'ESPN' }),
@@ -205,8 +207,9 @@ test('no team list configured means no boost at all', () => {
       article({ title: 'Royals fall to Guardians again', section: 'sports', source: 'CBS Sports' }),
     ],
     { ...QUOTAS, sports: 1 },
-    null,
+    null, null, null,
   );
+  assert.equal(withNone.length, 1, 'sports is still populated');
   assert.match(withNone[0].title, /Guardians|Royals/, 'corroboration decides when no teams are set');
 });
 
@@ -362,4 +365,31 @@ test('a single mainstream tech story is not penalised against other news', () =>
   const tech = clusters.find(c => c.section === 'tech')!;
   const us = clusters.find(c => c.section === 'us')!;
   assert.equal(tech.score, us.score, 'no penalty for being tech');
+});
+
+test('sports about a team she does not follow never takes a slot', () => {
+  // A Jets practice injury reached Rose purely because the section had room.
+  const clusters = selectClusters(
+    [
+      article({ title: 'Jets running back Breece Hall strains groin at practice', section: 'sports', source: 'ESPN' }),
+      article({ title: 'Knicks waive veteran forward', section: 'sports', source: 'CBS Sports' }),
+    ],
+    { ...QUOTAS, sports: 3 },
+    null, buildTeamPattern(['USC', 'Cubs']), NOTABLE_EVENT,
+  );
+  assert.equal(clusters.filter((c) => c.section === 'sports').length, 0, 'sports is empty, not filled');
+});
+
+test('her teams still get through', () => {
+  const clusters = selectClusters(
+    [
+      article({ title: 'Jets running back strains groin at practice', section: 'sports', source: 'ESPN' }),
+      article({ title: 'Cubs trade for All-Star closer', section: 'sports', source: 'ESPN' }),
+    ],
+    { ...QUOTAS, sports: 3 },
+    null, buildTeamPattern(['USC', 'Cubs']), NOTABLE_EVENT,
+  );
+  const sp = clusters.filter((c) => c.section === 'sports');
+  assert.equal(sp.length, 1);
+  assert.match(sp[0].title, /Cubs/);
 });
