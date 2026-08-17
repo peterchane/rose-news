@@ -1,0 +1,17 @@
+#!/bin/bash
+# Refuse to push code whose tests fail.
+#
+# Four builds were broken by pushing before running tests — each time a test
+# still asserted behaviour that had just been changed. This makes that
+# impossible rather than something to remember.
+echo "pre-push: running tests…"
+if ! npm test --silent >/tmp/rose-news-prepush.log 2>&1; then
+  echo
+  echo "PUSH BLOCKED — tests are failing:"
+  grep -E "^✖|^ℹ (tests|pass|fail)" /tmp/rose-news-prepush.log | head -20
+  echo
+  echo "Fix them, or bypass deliberately with: git push --no-verify"
+  exit 1
+fi
+grep -E "^ℹ (tests|pass|fail)" /tmp/rose-news-prepush.log | tr '\n' ' '
+echo "— ok"
