@@ -107,10 +107,18 @@ export function describeHoliday(h: Holiday): string {
  * outage must not stop the brief.
  */
 /**
- * How far ahead a holiday is worth mentioning. Announcing Rosh Hashanah every
- * morning for five weeks is nagging, not a heads-up.
+ * When a holiday earns a mention. Daily for five weeks is nagging; a single
+ * reminder is easy to miss. So: a heads-up at 30 and 15 days, then every day
+ * from a week out until the holiday itself.
  */
-export const MENTION_WITHIN_DAYS = 8;
+export const REMINDER_DAYS = [30, 15] as const;
+export const DAILY_FROM_DAYS = 7;
+
+export function shouldMention(daysAway: number): boolean {
+  if (daysAway < 0) return false;
+  if (daysAway <= DAILY_FROM_DAYS) return true;
+  return (REMINDER_DAYS as readonly number[]).includes(daysAway);
+}
 
 export async function nextHolidayCluster(today: string): Promise<Omit<Cluster, 'id'> | null> {
   try {
@@ -123,8 +131,8 @@ export async function nextHolidayCluster(today: string): Promise<Omit<Cluster, '
     const data = (await res.json()) as { items?: Parameters<typeof pickNextHoliday>[0] };
     const holiday = pickNextHoliday(data.items ?? [], today);
     if (!holiday) return null;
-    if (holiday.daysAway > MENTION_WITHIN_DAYS) {
-      console.log(`[jewish] ${holiday.title} is ${holiday.daysAway} days out; too early to mention`);
+    if (!shouldMention(holiday.daysAway)) {
+      console.log(`[jewish] ${holiday.title} is ${holiday.daysAway} days out; not a reminder day`);
       return null;
     }
 

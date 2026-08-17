@@ -92,7 +92,27 @@ test('all eight major holidays do qualify', () => {
   }
 });
 
-test('a holiday far out is not announced every day', async () => {
-  const { MENTION_WITHIN_DAYS } = await import('../lib/jewish');
-  assert.ok(MENTION_WITHIN_DAYS <= 10, 'a month of daily reminders is nagging');
+test('reminds at 30 and 15 days, then daily from a week out', async () => {
+  const { shouldMention } = await import('../lib/jewish');
+  assert.ok(shouldMention(30), '30-day heads-up');
+  assert.ok(shouldMention(15), '15-day heads-up');
+  for (let d = 0; d <= 7; d++) assert.ok(shouldMention(d), `daily at ${d} days`);
+});
+
+test('stays quiet on the days in between', async () => {
+  const { shouldMention } = await import('../lib/jewish');
+  for (const d of [45, 31, 29, 20, 16, 14, 10, 8]) {
+    assert.ok(!shouldMention(d), `should be silent at ${d} days`);
+  }
+});
+
+test('says nothing once the holiday has passed', async () => {
+  const { shouldMention } = await import('../lib/jewish');
+  assert.ok(!shouldMention(-1));
+});
+
+test('the whole run-up is covered, no gaps inside the final week', async () => {
+  const { shouldMention } = await import('../lib/jewish');
+  const mentioned = Array.from({ length: 46 }, (_, d) => d).filter(shouldMention);
+  assert.deepEqual(mentioned, [0, 1, 2, 3, 4, 5, 6, 7, 15, 30]);
 });
