@@ -118,6 +118,39 @@ export function clampSubject(s: string, max = 78): string {
   return line.slice(0, max).replace(/[\s,;:—–-]+\S*$/, '').trim() || line.slice(0, max).trim();
 }
 
+/**
+ * Splits a paragraph at a mid-paragraph pivot instead of rejecting the draft.
+ *
+ * Making the pivot fatal cost Rose an entire edition on Aug 18 — a stray
+ * "Meanwhile" is a formatting slip, and formatting slips must be repaired, never
+ * grounds for sending nothing.
+ */
+export const PIVOT_WORDS = /(?:^|(?<=[.!?]\s))(Meanwhile|Separately|Elsewhere|In other news)[,]?\s+/g;
+
+export function splitPivots(paragraphs: string[]): string[] {
+  const out: string[] = [];
+  for (const para of paragraphs) {
+    const pieces: string[] = [];
+    let rest = para;
+
+    for (;;) {
+      PIVOT_WORDS.lastIndex = 0;
+      const m = PIVOT_WORDS.exec(rest);
+      // Only split when there is real text before the pivot.
+      if (!m || m.index === 0 || !rest.slice(0, m.index).trim()) break;
+
+      pieces.push(rest.slice(0, m.index).trim());
+      const tail = rest.slice(m.index + m[0].length);
+      // Re-capitalise the new opening now the transition word is gone.
+      rest = tail.charAt(0).toUpperCase() + tail.slice(1);
+    }
+
+    pieces.push(rest.trim());
+    out.push(...pieces.filter(Boolean));
+  }
+  return out;
+}
+
 /** Matches the model's citation syntax: [anchor text](#12) */
 export const CITATION_RE = /\[([^\]\n]+)\]\(#(\d+)\)/g;
 
@@ -285,7 +318,7 @@ export function isUnretryable(message: string): boolean {
  * else is a style nit worth one retry but not worth losing the day over.
  */
 export function isFatal(problem: string): boolean {
-  return /not a candidate ID|raw URL|bulleted or numbered list|paragraphs, got|distinct stories cited|school violence|pivots to a new topic/.test(
+  return /not a candidate ID|raw URL|bulleted or numbered list|paragraphs, got|distinct stories cited|school violence/.test(
     problem,
   );
 }
@@ -528,6 +561,9 @@ export async function writeBrief(
         `[write] ${MODEL} attempt ${attempt}: ` +
           `${usage.inputTokens ?? '?'} in / ${usage.outputTokens ?? '?'} out`,
       );
+
+      // Repair formatting before judging it.
+      object.paragraphs = splitPivots(object.paragraphs);
 
       let subject = object.subject?.trim() ?? '';
       if (!subject) {

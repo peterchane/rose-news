@@ -227,7 +227,8 @@ test('fatal problems are distinguished from cosmetic ones', () => {
   assert.ok(isFatal('Paragraph 3 contains a bulleted or numbered list. Rewrite it as prose.'));
   assert.ok(isFatal('Need 5-9 paragraphs, got 3.'));
   assert.ok(!isFatal('Paragraph 5 anchors a link on "more". Anchor on a meaningful phrase.'));
-  assert.ok(isFatal('Paragraph 6 pivots to a new topic mid-paragraph at "Separately".'), 'now fatal');
+  // Repaired by splitPivots before validation, so it must never block a send.
+  assert.ok(!isFatal('Paragraph 6 pivots to a new topic mid-paragraph at "Separately".'));
   assert.ok(!isFatal('Paragraph 2 is too short (30 words); aim for 40-80.'));
 });
 
@@ -308,4 +309,23 @@ test('an access error on one model does not fail the run outright', async () => 
   // writeBrief treats an access error as fatal because the chain lives inside
   // defaultDraft; a custom draft that recovers should still be honoured.
   await assert.rejects(() => writeBrief(clusters, null, draft), BriefConfigError);
+});
+
+test('pivots are split out before validation, so they cannot fail a brief', async () => {
+  const { splitPivots } = await import('../lib/write');
+  const withPivot = [
+    'The vote passed Tuesday after a long debate over the text of the bill itself. ' +
+      'Meanwhile a drone was found at an airport and police opened [an inquiry](#1).',
+  ];
+  const fixed = splitPivots(withPivot);
+  assert.equal(fixed.length, 2, 'split into two paragraphs');
+  assert.ok(!/Meanwhile/.test(fixed.join(' ')), 'the transition word is gone');
+  assert.match(fixed[1], /^A drone/, 'the new paragraph is re-capitalised');
+  assert.deepEqual(validateBrief({ subject: 'x', paragraphs: fixed }, clusters).filter((p) => /pivots/.test(p)), []);
+});
+
+test('a pivot at the start of a paragraph is left alone', async () => {
+  const { splitPivots } = await import('../lib/write');
+  const p = 'Meanwhile in Washington the Senate returned from recess to a full calendar.';
+  assert.deepEqual(splitPivots([p]), [p]);
 });

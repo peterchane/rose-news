@@ -204,7 +204,7 @@ test('school violence in the finished prose is fatal, never shipped', () => {
   assert.ok(isFatal(problems.find((p) => /school violence/.test(p))!), 'must block the send');
 });
 
-test('a mid-paragraph pivot now blocks the send', () => {
+test('a mid-paragraph pivot is repaired, never a reason to send nothing', () => {
   // Raised twice as a reader complaint, so it is no longer merely cosmetic.
   const b = {
     ...ok(),
@@ -218,5 +218,6 @@ test('a mid-paragraph pivot now blocks the send', () => {
   const problems = validateBrief(b, CLUSTERS);
   const pivot = problems.find((p) => /pivots to a new topic/.test(p));
   assert.ok(pivot, problems.join(' | '));
-  assert.ok(isFatal(pivot!), 'must trigger a rewrite, not ship');
+  // Cost Rose an entire edition on Aug 18 when it was fatal.
+  assert.ok(!isFatal(pivot!), 'a formatting slip must never block the send');
 });
