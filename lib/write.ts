@@ -268,12 +268,11 @@ export function buildPrompt(
         `When a story HAS moved, open with what changed and reference the earlier coverage in passing ` +
         `("the Hormuz deal we mentioned yesterday was signed") rather than re-explaining the background.`,
     );
-    if (previous.paragraphs?.length) {
-      parts.push(
-        `\nYesterday's exact wording, so you don't reuse phrasing:\n` +
-          previous.paragraphs.map((p) => p.replace(/\[([^\]]+)\]\(#\d+\)/g, '$1')).join('\n\n'),
-      );
-    }
+    // Deliberately NOT yesterday's prose. Feeding the full text back invited
+    // the model to reuse its *content*, not just avoid its phrasing — that is
+    // how a Rosh Hashanah line appeared on a day the holiday wasn't a
+    // candidate at all, bypassing the candidate list entirely. Titles are
+    // enough to recognise a repeat.
   }
 
   parts.push(

@@ -75,10 +75,13 @@ test('the prompt tells the model not to repeat them', () => {
   assert.match(p, /unless something genuinely new happened/);
 });
 
-test("yesterday's wording is included, with link markup stripped", () => {
+test("yesterday's prose is NOT fed back, only its story titles", () => {
+  // Feeding the full text back let the model reuse yesterday's content: a Rosh
+  // Hashanah line appeared on a day the holiday was not a candidate at all,
+  // which bypasses the candidate list entirely.
   const p = buildPrompt(clusters, previous);
-  assert.match(p, /Iran and Oman neared a deal\./, 'prose is present');
-  assert.ok(!p.includes('[Oman](#1)'), 'citation markup is not fed back');
+  assert.ok(!p.includes('Iran and Oman neared a deal'), 'prose must not be fed back');
+  assert.match(p, /Iran-Oman Hormuz deal/, 'the title is enough to spot a repeat');
 });
 
 test('no previous brief means no ALREADY SENT block at all', () => {
