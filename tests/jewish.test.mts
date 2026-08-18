@@ -116,3 +116,55 @@ test('the whole run-up is covered, no gaps inside the final week', async () => {
   const mentioned = Array.from({ length: 46 }, (_, d) => d).filter(shouldMention);
   assert.deepEqual(mentioned, [0, 1, 2, 3, 4, 5, 6, 7, 15, 30]);
 });
+
+// ── The calendar must never be able to break a send ────────────────────────
+
+test('an unreachable calendar yields no holiday rather than throwing', async () => {
+  const { nextHolidayCluster } = await import('../lib/jewish');
+  const real = globalThis.fetch;
+  globalThis.fetch = (async () => { throw new Error('ENOTFOUND hebcal.com'); }) as typeof fetch;
+  try {
+    assert.equal(await nextHolidayCluster('2026-09-10'), null);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
+test('an HTTP error from the calendar is survivable', async () => {
+  const { nextHolidayCluster } = await import('../lib/jewish');
+  const real = globalThis.fetch;
+  globalThis.fetch = (async () => new Response('nope', { status: 503 })) as typeof fetch;
+  try {
+    assert.equal(await nextHolidayCluster('2026-09-10'), null);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
+
+test('a changed or garbage response shape is survivable', async () => {
+  const { nextHolidayCluster } = await import('../lib/jewish');
+  const real = globalThis.fetch;
+  for (const body of ['{}', '{"items":null}', '{"items":[]}', 'not json at all', '{"items":[{"nope":1}]}']) {
+    globalThis.fetch = (async () => new Response(body, { status: 200 })) as typeof fetch;
+    assert.equal(await nextHolidayCluster('2026-09-10'), null, `body: ${body}`);
+  }
+  globalThis.fetch = real;
+});
+
+test('a real response produces a citable candidate on a reminder day', async () => {
+  const { nextHolidayCluster } = await import('../lib/jewish');
+  const real = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({
+      items: [{ title: 'Erev Rosh Hashana', date: '2026-09-11', hdate: '29 Elul 5786', category: 'holiday' }],
+    }), { status: 200 })) as typeof fetch;
+  try {
+    const c = await nextHolidayCluster('2026-09-05'); // 6 days out → daily window
+    assert.ok(c, 'should be offered');
+    assert.equal(c!.section, 'jewish');
+    assert.match(c!.link, /^https:\/\/www\.chabad\.org\//);
+    assert.match(c!.blurb, /September 11/);
+  } finally {
+    globalThis.fetch = real;
+  }
+});
