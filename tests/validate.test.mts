@@ -288,3 +288,28 @@ test('problem text reaches the model without the severity marker', async () => {
     assert.ok(!problemText(p).startsWith('FATAL'), `leaked marker: ${p}`);
   }
 });
+
+test('food-safety and pathogen stories are filtered as disease', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  for (const t of [
+    'Blueberry recall upgraded to highest risk category over possible E. coli',
+    'Publix frozen berry recall expanded after contamination found',
+    'Salmonella outbreak linked to onions sickens dozens',
+    'Listeria found in packaged salad prompts recall',
+    'CDC issues health alert over rising norovirus cases',
+    'Bird flu detected in commercial poultry flock',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});
+
+test('an ordinary product recall is not mistaken for disease news', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // The filter is scoped to food and health on purpose.
+  for (const t of [
+    'Toyota recalls 300,000 trucks over a steering defect',
+    'Apple recalls a laptop charger design',
+  ]) {
+    assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
+  }
+});

@@ -252,6 +252,17 @@ const DISTRESSING = new RegExp(
     /\b(outbreak|epidemic|pandemic|infection|infectious|virus|viral (spread|outbreak)|covid|influenza|measles|ebola|cholera|malaria|tuberculosis|hiv|aids\b|superbug|antibiotic resistance)\b/,
     /\b(disease|illness|syndrome|disorder|diagnosis|diagnosed|symptoms|contagious|quarantine|hospitali[sz]\w*|intensive care|icu\b)\b/,
     /\b(recall(ed|s)? (over|after|due to)|contaminat|food poisoning|tainted|overdose deaths)\b/,
+    // Named pathogens, which the general disease words above all miss. A
+    // Publix E. coli recall reached a draft because "E. coli" appeared
+    // nowhere in this filter and the recall wording was "upgraded to", not
+    // "recalled over".
+    /\be\.? ?coli\b/,
+    /\b(salmonella|listeria|norovirus|botulism|legionella|campylobacter|anthrax|rabies|mpox|monkeypox|bird flu|avian (influenza|flu)|h5n1|west nile|dengue|zika|hepatitis|meningitis|rsv\b|whooping cough|polio)\b/,
+    // Food-safety recalls in any phrasing. Deliberately scoped to food and
+    // health so an ordinary car or appliance recall is left alone.
+    /\brecall\w*\b.{0,60}\b(coli|salmonella|listeria|contaminat|illness|outbreak|bacteria|pathogen|risk (level|category)|class (1|i|one) risk)\b/,
+    /\b(food|produce|meat|beef|poultry|chicken|frozen|dairy|cheese|lettuce|spinach|onion|berr(y|ies)|blueberr\w+|salad|infant formula) recall\w*/,
+    /\b(food safety|health alert|foodborne)\b/,
     /\b(mental health crisis|self-harm|eating disorder|addiction|addicted)\b/,
 
     // Drugs. Peter: "nothing about drugs and disease".
