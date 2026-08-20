@@ -263,3 +263,28 @@ test('the crime filter still leaves ordinary news alone', async () => {
     assert.ok(!isViolentCrime(t), `should NOT be filtered: ${t}`);
   }
 });
+
+test('every validation rule declares its own severity', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../lib/write.ts', import.meta.url), 'utf8');
+  // Whether Rose gets an email used to depend on whether a problem's WORDING
+  // matched a regex, so adding a rule or rewording a message silently changed
+  // who got mail. Rules must call fatal() or nit() and say which they are.
+  const raw = src.split('\n').filter((l) => /problems\.push\(/.test(l) && !/=> problems\.push\(/.test(l));
+  assert.deepEqual(raw, [], `these rules bypass fatal()/nit():\n${raw.join('\n')}`);
+});
+
+test('severity survives rewording a message', async () => {
+  const { isFatal } = await import('../lib/write');
+  // The old check keyed on phrases like "paragraphs, got". Prose must not decide.
+  assert.ok(!isFatal('Need 5-9 paragraphs, got 10.'), 'wording alone is not fatal');
+  assert.ok(!isFatal('Only 2 distinct stories cited. Cover more of the day.'));
+});
+
+test('problem text reaches the model without the severity marker', async () => {
+  const { problemText } = await import('../lib/write');
+  const bad = { ...ok(), paragraphs: [para(1, 2), para(3, 4)] };
+  for (const p of validateBrief(bad, CLUSTERS)) {
+    assert.ok(!problemText(p).startsWith('FATAL'), `leaked marker: ${p}`);
+  }
+});

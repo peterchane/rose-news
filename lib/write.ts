@@ -346,24 +346,38 @@ export function isUnretryable(message: string): boolean {
  * feedback for one retry — models reliably fix these when told specifically.
  */
 /**
- * Problems that make a brief genuinely unsendable: fabricated or invalid links,
- * raw URLs, list formatting, or a body that isn't the right shape. Everything
- * else is a style nit worth one retry but not worth losing the day over.
+ * Marks a problem as one that must block the send.
+ *
+ * Severity is declared by the rule that raises the problem, never inferred from
+ * how the problem is worded. Pattern-matching the prose is what made this
+ * fragile: a repair added to save a brief from a formatting nit started killing
+ * briefs because its message happened to match the fatal regex, and the same
+ * class of accident cost two separate editions. A new rule now has to state its
+ * own severity, and a reworded message cannot change who gets an email.
  */
+const FATAL = 'FATAL: ';
+
 export function isFatal(problem: string): boolean {
-  return /not a candidate ID|raw URL|bulleted or numbered list|paragraphs, got|distinct stories cited|school violence/.test(
-    problem,
-  );
+  return problem.startsWith(FATAL);
+}
+
+/** The problem text without its severity marker, for prompts and alerts. */
+export function problemText(problem: string): string {
+  return problem.startsWith(FATAL) ? problem.slice(FATAL.length) : problem;
 }
 
 export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const problems: string[] = [];
+  /** Unsendable: fabricated links, raw URLs, list formatting, wrong shape. */
+  const fatal = (m: string) => problems.push(FATAL + m);
+  /** Worth a retry, never worth losing the day over. */
+  const nit = (m: string) => problems.push(m);
 
   // Absolute. Checked on the finished prose as well as at ingest, because this
   // is the one subject where a filter miss is not acceptable. Always fatal.
   for (const [i, para] of brief.paragraphs.entries()) {
     if (isSchoolViolence(para)) {
-      problems.push(
+      fatal(
         `Paragraph ${i + 1} refers to school violence, which must NEVER appear. Remove it entirely.`,
       );
     }
@@ -373,27 +387,26 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
 
   const n = brief.paragraphs.length;
   if (n < 5 || n > MAX_PARAGRAPHS) {
-    // Only a wildly wrong count makes an unsendable email. 10 paragraphs is a
-    // slightly long email; 0 is nothing at all. Losing a day over the former
-    // is worse than sending it.
-    const severity = n < 3 || n > 12 ? 'Need 5-9 paragraphs, got' : 'Prefer 5-9 paragraphs; got';
-    problems.push(`${severity} ${n}.`);
+    // Ten paragraphs is a slightly long email; zero is no email at all. Only
+    // the second is worth losing the day over.
+    const wildlyWrong = n < 3 || n > 12;
+    (wildlyWrong ? fatal : nit)(`Need 5-9 paragraphs, got ${n}.`);
   }
 
   brief.paragraphs.forEach((para, i) => {
     const n = i + 1;
 
     if (/^\s*(?:[-*•]|\d+[.)])\s/m.test(para)) {
-      problems.push(`Paragraph ${n} contains a bulleted or numbered list. Rewrite it as prose.`);
+      fatal(`Paragraph ${n} contains a bulleted or numbered list. Rewrite it as prose.`);
     }
 
     if (/https?:\/\//.test(para)) {
-      problems.push(`Paragraph ${n} contains a raw URL. Cite candidates as [text](#ID) only.`);
+      fatal(`Paragraph ${n} contains a raw URL. Cite candidates as [text](#ID) only.`);
     }
 
     const words = para.trim().split(/\s+/).length;
-    if (words < 25) problems.push(`Paragraph ${n} is too short (${words} words); aim for 40-80.`);
-    if (words > 110) problems.push(`Paragraph ${n} is too long (${words} words); aim for 40-80. Split it at the topic change.`);
+    if (words < 25) nit(`Paragraph ${n} is too short (${words} words); aim for 40-80.`);
+    if (words > 110) nit(`Paragraph ${n} is too long (${words} words); aim for 40-80. Split it at the topic change.`);
 
     // A pivot word means two topics got fused into one block. It's legitimate
     // only as the paragraph's opening word, where it bridges from the previous
@@ -401,7 +414,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     // it marks a topic change that should have been a paragraph break.
     const pivot = para.match(/\b(Meanwhile|Separately|Elsewhere|In other news)\b/);
     if (pivot && pivot.index !== undefined && para.slice(0, pivot.index).trim() !== '') {
-      problems.push(
+      nit(
         `Paragraph ${n} pivots to a new topic mid-paragraph at "${pivot[1]}". Start a new paragraph there instead.`,
       );
     }
@@ -413,27 +426,27 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
       linkCount++;
       const id = Number(m[2]);
       if (!validIds.has(id)) {
-        problems.push(`Paragraph ${n} cites #${id}, which is not a candidate ID.`);
+        fatal(`Paragraph ${n} cites #${id}, which is not a candidate ID.`);
       }
       // Match the WHOLE anchor, not a prefix — "more than 300 people who had
       // been abducted" is a fine anchor and used to trip the "more" rule.
       if (/^(read more|read this|here|this|this article|link|more|click here|click|full story)$/i.test(m[1].trim().replace(/[.,]$/, ''))) {
-        problems.push(`Paragraph ${n} anchors a link on "${m[1]}". Anchor on a meaningful phrase.`);
+        nit(`Paragraph ${n} anchors a link on "${m[1]}". Anchor on a meaningful phrase.`);
       }
     }
 
     if (linkCount === 0) {
-      problems.push(`Paragraph ${n} has no citations. Every paragraph needs 1-3.`);
+      nit(`Paragraph ${n} has no citations. Every paragraph needs 1-3.`);
     }
     if (linkCount > 4) {
-      problems.push(`Paragraph ${n} has ${linkCount} links; use at most 3.`);
+      nit(`Paragraph ${n} has ${linkCount} links; use at most 3.`);
     }
     // 0.35 rather than 0.25: asking for meaningful multi-word anchors and then
     // enforcing a tight density budget are contradictory demands, and the tighter
     // number forced a retry on nearly every run. This still catches a genuine
     // link dump, which scores well north of 0.5.
     if (para.length > 0 && anchorChars / para.length > 0.35) {
-      problems.push(
+      nit(
         `Paragraph ${n} is mostly link text. Shorten the anchors to 3-6 words and let the prose carry it.`,
       );
     }
@@ -443,7 +456,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     brief.paragraphs.flatMap((p) => [...p.matchAll(CITATION_RE)].map((m) => Number(m[2]))),
   );
   if (allCited.size < 5) {
-    problems.push(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
+    fatal(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
   }
 
   // Sports gets a quota but nothing otherwise forces the writer to spend it,
@@ -457,7 +470,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     // made every edition start the same way, which is what Peter objected to.
     const last = sectionsOf(brief.paragraphs[brief.paragraphs.length - 1]);
     if (clusters.some((c) => c.section === 'good') && !last.includes('good')) {
-      problems.push('The email must CLOSE with the good news. Move it to the final paragraph.');
+      nit('The email must CLOSE with the good news. Move it to the final paragraph.');
     }
   }
 
@@ -480,7 +493,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   if (firstForeign !== -1) {
     const usAfter = newsSections.indexOf('us', firstForeign);
     if (usAfter !== -1) {
-      problems.push(
+      nit(
         `Paragraph ${usAfter + 1} is US news but comes after foreign news in paragraph ${firstForeign + 1}. ` +
           'Every US story must come before any foreign story.',
       );
@@ -494,7 +507,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     (c) => c.section === 'tech' && (c.coverage.length >= 2 || /New York Times|CNBC|BBC|Washington Post/i.test(c.source)),
   );
   if (nationalTech && ![...allCited].some((id) => sectionById.get(id) === 'tech')) {
-    problems.push(
+    nit(
       'A major tech story was available but not cited. Include it with the US news paragraphs.',
     );
   }
@@ -510,7 +523,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     const available = clusters.some((c) => c.section === section);
     const cited = [...allCited].some((id) => sectionById.get(id) === section);
     if (available && !cited) {
-      problems.push(`No ${label} story was cited, but one was available. Include at least one — ${hint}.`);
+      nit(`No ${label} story was cited, but one was available. Include at least one — ${hint}.`);
     }
   }
 
@@ -587,7 +600,7 @@ export async function writeBrief(
     const prompt =
       lastProblems.length === 0
         ? basePrompt
-        : `${basePrompt}\n\nYour previous draft was rejected for these reasons:\n${lastProblems
+        : `${basePrompt}\n\nYour previous draft was rejected for these reasons:\n${lastProblems.map(problemText)
             .map((p) => `- ${p}`)
             .join('\n')}\n\nWrite a corrected version that fixes every one of them.`;
 
@@ -621,7 +634,7 @@ export async function writeBrief(
       if (lastProblems.length === 0) return candidate;
 
       console.warn(
-        `[write] attempt ${attempt} failed validation:\n${lastProblems.map((p) => `  - ${p}`).join('\n')}`,
+        `[write] attempt ${attempt} failed validation:\n${lastProblems.map((p) => `  - ${problemText(p)}`).join('\n')}`,
       );
 
       // Every retry is another full model call — the dominant cost and the
@@ -664,6 +677,6 @@ export async function writeBrief(
   }
 
   throw new BriefValidationError(
-    `Brief failed after ${ATTEMPTS} attempts: ${lastProblems.join(' | ')}`,
+    `Brief failed after ${ATTEMPTS} attempts: ${lastProblems.map(problemText).join(' | ')}`,
   );
 }

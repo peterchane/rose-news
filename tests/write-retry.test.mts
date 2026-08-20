@@ -216,20 +216,38 @@ test('an over-long subject is trimmed, never a reason to fail', async () => {
   assert.ok(out.subject.length <= 78);
 });
 
-test('a link-free paragraph is cosmetic, not fatal', () => {
-  assert.ok(!isFatal('Paragraph 1 has no citations. Every paragraph needs 1-3.'));
-  assert.ok(isFatal('Only 3 distinct stories cited. Cover more of the day\'s news.'));
+/**
+ * Severity is asserted through validateBrief, never by handing isFatal a
+ * hand-written string. Strings are what made this fragile: these tests used to
+ * pass while the real rules disagreed with them.
+ */
+const sev = (paragraphs: string[], match: RegExp) => {
+  const hit = validateBrief({ ...good, paragraphs }, clusters).find((p) => match.test(p));
+  assert.ok(hit, `no problem matched ${match}`);
+  return isFatal(hit!);
+};
+
+const five = (extra: string) => [para(9, 10), para(1, 2), para(3, 4), para(5, 6), extra];
+
+test('problems that make a brief unsendable block the send', () => {
+  assert.ok(sev(five(para(1, 2).replace('(#1)', '(#999)')), /not a candidate ID/), 'fabricated link');
+  assert.ok(sev(five(para(1, 2).replace('(#1)', '(https://evil.com)')), /raw URL/), 'raw URL');
+  assert.ok(sev(five('- Iran did a thing today\n- Israel did another thing'), /bulleted or numbered/), 'list');
+  assert.ok(sev([para(1, 2), para(1, 2)], /paragraphs, got|got 2/), 'far too few paragraphs');
+  assert.ok(sev(Array.from({ length: 5 }, () => para(1, 2)), /distinct stories/), 'too few stories');
 });
 
-test('fatal problems are distinguished from cosmetic ones', () => {
-  assert.ok(isFatal('Paragraph 2 cites #999, which is not a candidate ID.'));
-  assert.ok(isFatal('Paragraph 1 contains a raw URL. Cite candidates as [text](#ID) only.'));
-  assert.ok(isFatal('Paragraph 3 contains a bulleted or numbered list. Rewrite it as prose.'));
-  assert.ok(isFatal('Need 5-9 paragraphs, got 3.'));
-  assert.ok(!isFatal('Paragraph 5 anchors a link on "more". Anchor on a meaningful phrase.'));
-  // Repaired by splitPivots before validation, so it must never block a send.
-  assert.ok(!isFatal('Paragraph 6 pivots to a new topic mid-paragraph at "Separately".'));
-  assert.ok(!isFatal('Paragraph 2 is too short (30 words); aim for 40-80.'));
+test('problems that are merely untidy still ship', () => {
+  assert.ok(!sev(five('The vote passed Tuesday. Officials expect [more detail](#1) soon.'), /too short/));
+  assert.ok(!sev(five(para(1, 2).replace('[according to talks]', '[read more]')), /meaningful phrase/));
+  assert.ok(!sev(five(para(1, 2).replace(/\[([^\]]+)\]\(#\d+\)/g, '$1')), /no citations/));
+  // Repaired by splitPivots, so it must never block a send.
+  assert.ok(!sev(
+    five('The vote passed the chamber Tuesday after debate. Meanwhile a drone was found at an airport, and police opened an inquiry into [how it got there](#3).'),
+    /pivots to a new topic/,
+  ));
+  // The regression that cost an edition: splitting pushed the count over nine.
+  assert.ok(!sev(Array.from({ length: 10 }, (_, i) => para((i % 8) + 1, ((i + 3) % 8) + 1)), /paragraphs, got 10/));
 });
 
 test('a final draft with only cosmetic issues is sent, not discarded', async () => {
