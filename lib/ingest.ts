@@ -106,6 +106,10 @@ const VIOLENT_CRIME = new RegExp(
     /\bsexual(ly)? (assault|abuse)\b/,
     /\brap(ed|ist)\b/,
     /\b(beheaded|dismembered)\b/,
+    // Prosecutions and convictions are crime coverage too. A story about
+    // charges being filed, reduced or upheld is still a story about a crime,
+    // which is the whole category Rose asked to be kept out.
+    /\b(charges?|indict\w*|prosecutor\w*|prosecut(e|ed|ion)|convict(ed|ion)|sentenc(ed|ing)|plead(s|ed)? guilty|arraign\w*|felony|manslaughter)\b/,
   ]
     .map((r) => r.source)
     .join('|'),

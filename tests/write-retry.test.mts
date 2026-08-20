@@ -329,3 +329,39 @@ test('a pivot at the start of a paragraph is left alone', async () => {
   const p = 'Meanwhile in Washington the Senate returned from recess to a full calendar.';
   assert.deepEqual(splitPivots([p]), [p]);
 });
+
+test('splitting never pushes the brief past the paragraph limit', async () => {
+  const { splitPivots, MAX_PARAGRAPHS } = await import('../lib/write');
+  // Nine paragraphs that each want to split would become eighteen.
+  const wants = Array.from({ length: 9 }, () =>
+    'The first thing happened on Tuesday. Meanwhile the second thing also happened.');
+  const out = splitPivots(wants);
+  assert.ok(out.length <= MAX_PARAGRAPHS, `got ${out.length}, limit ${MAX_PARAGRAPHS}`);
+  assert.ok(out.length >= wants.length, 'and never fewer than it started with');
+});
+
+test('a whitespace-only paragraph is not silently deleted', async () => {
+  const { splitPivots } = await import('../lib/write');
+  // Emptying one is how a brief arrived with zero paragraphs and failed to send.
+  assert.equal(splitPivots(['   ']).length, 1);
+  assert.equal(splitPivots(['real text', '  ', 'more text']).length, 3);
+});
+
+test('a slightly long brief is sent; an empty one is not', async () => {
+  const { isFatal } = await import('../lib/write');
+  const ten = { ...good, paragraphs: Array.from({ length: 10 }, () => para(1, 2)) };
+  const tenProblems = validateBrief(ten, clusters).filter((p) => /paragraphs/.test(p));
+  assert.ok(tenProblems.length && !tenProblems.some(isFatal), 'ten paragraphs still ships');
+
+  const none = { ...good, paragraphs: [] };
+  assert.ok(validateBrief(none, clusters).filter((p) => /paragraphs/.test(p)).some(isFatal), 'zero blocks');
+});
+
+test('dropUncited leaves the shared citation regex unpolluted', async () => {
+  const { dropUncited, validateBrief: v, CITATION_RE } = await import('../lib/write');
+  // A `.test` on the shared global regex advances lastIndex, so the next
+  // validation saw a well-cited paragraph as having no citations at all.
+  dropUncited([para(1, 2), para(3, 4), para(5, 6), para(7, 8), 'uncited text here']);
+  assert.equal(CITATION_RE.lastIndex, 0, 'lastIndex must not be left advanced');
+  assert.deepEqual(v(good, clusters), [], 'validation still clean afterwards');
+});

@@ -36,7 +36,7 @@ test('a well-formed brief passes', () => {
 
 const cases: [string, () => any, RegExp][] = [
   ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /5-9 paragraphs/],
-  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 10 }, () => para(1, 2)) }), /5-9 paragraphs/],
+  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /5-9 paragraphs/],
   ['a bulleted list', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), '- Iran did a thing worth noting here today\n- Israel did another separate thing'] }), /bulleted or numbered list/],
   ['a raw URL', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(https://evil.com)')] }), /raw URL/],
   ['an unknown id', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(#999)')] }), /#999/],
@@ -220,4 +220,46 @@ test('a mid-paragraph pivot is repaired, never a reason to send nothing', () => 
   assert.ok(pivot, problems.join(' | '));
   // Cost Rose an entire edition on Aug 18 when it was fatal.
   assert.ok(!isFatal(pivot!), 'a formatting slip must never block the send');
+});
+
+test('a paragraph citing nothing is dropped, not sent', async () => {
+  const { dropUncited } = await import('../lib/write');
+  // How a Rosh Hashanah line reached Rose on a day the holiday was not a
+  // candidate: no id behind it, because there was no candidate to cite.
+  const fabricated = 'Rosh Hashanah, the Jewish new year, arrives in a few weeks.';
+  const out = dropUncited([para(9, 10), para(1, 2), para(3, 4), para(5, 6), para(7, 8), fabricated]);
+  assert.ok(!out.includes(fabricated), 'uncited paragraph must go');
+  assert.equal(out.length, 5);
+});
+
+test('dropping uncited paragraphs never shrinks a brief below sendable', async () => {
+  const { dropUncited } = await import('../lib/write');
+  // Repair, not rejection: better a slightly loose brief than no email.
+  const thin = [para(1, 2), para(3, 4), 'No citations here at all.', 'Nor here.'];
+  assert.deepEqual(dropUncited(thin), thin);
+});
+
+test('prosecution and conviction stories are treated as crime', async () => {
+  const { isViolentCrime } = await import('../lib/ingest');
+  for (const t of [
+    'L.A. prosecutor reduces charges against officer who recorded colleagues',
+    'Former executive convicted of fraud in federal court',
+    'Man pleads guilty in long-running case',
+    'Judge sentenced the defendant on Tuesday',
+  ]) {
+    assert.ok(isViolentCrime(t), `should be filtered: ${t}`);
+  }
+});
+
+test('the crime filter still leaves ordinary news alone', async () => {
+  const { isViolentCrime } = await import('../lib/ingest');
+  for (const t of [
+    'US national debt passes $40 trillion for the first time',
+    'Stripe to buy AI startup OpenRouter for $7.5 billion',
+    'USC football gears up for 2026 with playoff goals',
+    'Archaeologists triple the scale of an ancient Amazonian civilization',
+    'Senate passes spending bill after long debate',
+  ]) {
+    assert.ok(!isViolentCrime(t), `should NOT be filtered: ${t}`);
+  }
 });

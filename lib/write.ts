@@ -127,13 +127,25 @@ export function clampSubject(s: string, max = 78): string {
  */
 export const PIVOT_WORDS = /(?:^|(?<=[.!?]\s))(Meanwhile|Separately|Elsewhere|In other news)[,]?\s+/g;
 
-export function splitPivots(paragraphs: string[]): string[] {
+export const MAX_PARAGRAPHS = 9;
+
+export function splitPivots(paragraphs: string[], max = MAX_PARAGRAPHS): string[] {
   const out: string[] = [];
-  for (const para of paragraphs) {
+
+  for (const [i, para] of paragraphs.entries()) {
+    // Splitting must never push the brief past the paragraph limit — that
+    // turned a repair into a failed send (8 paragraphs became 10, and the
+    // count check is fatal). Every paragraph still to come needs a slot of its
+    // own, so this one may only claim what is left over. Once the budget runs
+    // out, paragraphs are left whole.
+    const stillToCome = paragraphs.length - i - 1;
+    const budget = max - out.length - stillToCome;
+
     const pieces: string[] = [];
     let rest = para;
 
-    for (;;) {
+    // pieces holds the splits; `rest` becomes one more paragraph below.
+    while (pieces.length + 1 < budget) {
       PIVOT_WORDS.lastIndex = 0;
       const m = PIVOT_WORDS.exec(rest);
       // Only split when there is real text before the pivot.
@@ -146,9 +158,31 @@ export function splitPivots(paragraphs: string[]): string[] {
     }
 
     pieces.push(rest.trim());
-    out.push(...pieces.filter(Boolean));
+    const kept = pieces.filter(Boolean);
+    // A whitespace-only paragraph must not vanish and take the count with it.
+    out.push(...(kept.length ? kept : [para]));
   }
+
   return out;
+}
+
+/**
+ * Drops paragraphs that cite nothing.
+ *
+ * An uncited paragraph is the one route by which content that is not in the
+ * candidate list reaches the email — a Rosh Hashanah mention appeared on a day
+ * the holiday was not a candidate at all, and it cited nothing because there
+ * was nothing to cite. Every real story has an id behind it.
+ *
+ * A repair, never a rejection: paragraphs are only dropped while enough remain
+ * to still be a brief.
+ */
+export function dropUncited(paragraphs: string[], min = 5): string[] {
+  // A non-global copy on purpose: `.test` on the shared global CITATION_RE
+  // advances its lastIndex and silently breaks the next caller's scan.
+  const cited = new RegExp(CITATION_RE.source);
+  const keep = paragraphs.filter((p) => cited.test(p));
+  return keep.length >= min ? keep : paragraphs;
 }
 
 /** Matches the model's citation syntax: [anchor text](#12) */
@@ -337,8 +371,13 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const validIds = new Set(clusters.map((c) => c.id));
   const sectionById = new Map(clusters.map((c) => [c.id, c.section]));
 
-  if (brief.paragraphs.length < 5 || brief.paragraphs.length > 9) {
-    problems.push(`Need 5-9 paragraphs, got ${brief.paragraphs.length}.`);
+  const n = brief.paragraphs.length;
+  if (n < 5 || n > MAX_PARAGRAPHS) {
+    // Only a wildly wrong count makes an unsendable email. 10 paragraphs is a
+    // slightly long email; 0 is nothing at all. Losing a day over the former
+    // is worse than sending it.
+    const severity = n < 3 || n > 12 ? 'Need 5-9 paragraphs, got' : 'Prefer 5-9 paragraphs; got';
+    problems.push(`${severity} ${n}.`);
   }
 
   brief.paragraphs.forEach((para, i) => {
@@ -562,7 +601,7 @@ export async function writeBrief(
       );
 
       // Repair formatting before judging it.
-      object.paragraphs = splitPivots(object.paragraphs);
+      object.paragraphs = dropUncited(splitPivots(object.paragraphs));
 
       let subject = object.subject?.trim() ?? '';
       if (!subject) {

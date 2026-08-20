@@ -10,7 +10,8 @@
     "check:feeds": "node ./node_modules/tsx/dist/cli.mjs scripts/check-feeds.mts",
     "feeds:csv": "node ./node_modules/tsx/dist/cli.mjs scripts/feeds-to-csv.mts",
     "mail:verify": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/verify-mail.mts",
-    "test": "node --env-file-if-exists=.env.local --import ./node_modules/tsx/dist/loader.mjs --test tests/*.test.mts"
+    "test": "node --env-file-if-exists=.env.local --import ./node_modules/tsx/dist/loader.mjs --test tests/*.test.mts",
+    "dry": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/dry-run.mts"
   },
   "dependencies": {
     "@vercel/blob": "^2.6.1",
