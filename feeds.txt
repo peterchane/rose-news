@@ -74,7 +74,6 @@ usc      | Daily Trojan            | https://dailytrojan.com/category/sports/fee
 # ---- Good news ----
 # One of these goes in every edition. These outlets publish a few times a week,
 # so they get a 4-day window rather than the usual 30 hours.
-good     | Good News Network       | https://www.goodnewsnetwork.org/feed/                        | 1.0 | 96
 good     | Positive News           | https://www.positive.news/feed/                              | 0.9 | 96
 good     | Reasons to be Cheerful  | https://reasonstobecheerful.world/feed/                      | 0.9 | 96
 good     | Optimist Daily          | https://www.optimistdaily.com/feed/                          | 0.8 | 96
