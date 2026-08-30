@@ -3,6 +3,7 @@ import { loadFeedConfig } from './feeds';
 import { selectClusters, type Cluster } from './select';
 import { writeBrief, type Brief } from './write';
 import { renderBrief, type RenderedBrief } from './render';
+import { todaysWeatherNote } from './weather';
 import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
 import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT } from './teams';
@@ -61,7 +62,9 @@ export async function buildBrief(): Promise<PipelineResult> {
   }
 
   const brief = await writeBrief(kept, previous);
-  const rendered = renderBrief(brief, kept);
+  // Never blocks the brief: an unavailable forecast just means no weather line.
+  const weather = await todaysWeatherNote();
+  const rendered = renderBrief(brief, kept, weather);
 
   return { brief, rendered, clusters: kept, failures };
 }

@@ -68,7 +68,11 @@ function resolveCitations(
   return parts.join('');
 }
 
-export function renderBrief(brief: Brief, clusters: Cluster[]): RenderedBrief {
+export function renderBrief(
+  brief: Brief,
+  clusters: Cluster[],
+  weather: string | null = null,
+): RenderedBrief {
   const byId = new Map(clusters.map((c) => [c.id, c]));
   const cited = new Set<number>();
   const note = noteForToday();
@@ -97,7 +101,11 @@ export function renderBrief(brief: Brief, clusters: Cluster[]): RenderedBrief {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#ffffff;border-radius:8px;">
             <tr>
               <td style="padding:36px 32px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-                ${bodyHtml}
+                ${
+                  weather
+                    ? `<p style="margin:0 0 24px;padding:12px 14px;background-color:#f0f4f8;border-radius:6px;font-size:15px;line-height:1.5;color:${TEXT_COLOR};">${escapeHtml(weather)}</p>`
+                    : ''
+                }${bodyHtml}
                 <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e5e5e2;font-size:14px;line-height:1.6;color:${TEXT_COLOR};">
                   <strong style="color:${MUTED_COLOR};">Message from Dad:</strong> ${escapeHtml(note)}
                 </p>
@@ -124,7 +132,7 @@ export function renderBrief(brief: Brief, clusters: Cluster[]): RenderedBrief {
     })
     .join('\n');
 
-  const text = `${textBody}\n\nMessage from Dad: ${note}\n\n---\nSOURCES\n${sources}\n`;
+  const text = `${weather ? `${weather}\n\n` : ''}${textBody}\n\nMessage from Dad: ${note}\n\n---\nSOURCES\n${sources}\n`;
 
   return { subject: brief.subject, html, text, citedIds: [...cited].sort((a, b) => a - b) };
 }
