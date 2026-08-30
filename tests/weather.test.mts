@@ -197,3 +197,24 @@ test('the weather line is escaped like everything else', () => {
   assert.ok(!r.html.includes('<b>soon</b>'), 'no raw markup reaches the email');
   assert.ok(r.html.includes('&amp;'));
 });
+
+test("tomorrow's rain is what gets reported, ahead of anything later", () => {
+  // The nearest rain is the one that changes what she does tomorrow.
+  const week = [
+    day('This Afternoon', 88), night('Tonight', 65),
+    day('Monday', 80, 60), night('Monday Night', 62, 60),
+    day('Saturday', 78, 90),
+  ];
+  const note = weatherNote(week)!;
+  assert.match(note, /Monday/, `should lead with tomorrow, not Saturday: ${note}`);
+});
+
+test('thunderstorms are called storms, not rain', () => {
+  const stormy = [
+    day('This Afternoon', 88),
+    { ...day('Monday', 80, 60), shortForecast: 'Chance Showers And Thunderstorms' },
+  ];
+  const note = weatherNote(stormy)!;
+  assert.match(note, /storms/i, `should name storms: ${note}`);
+  assert.doesNotMatch(note, /\bRain is\b/, 'and not undersell them as rain');
+});

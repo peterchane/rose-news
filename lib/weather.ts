@@ -45,6 +45,9 @@ const precip = (p: Period): number => p.probabilityOfPrecipitation?.value ?? 0;
 /** NWS often names rain in the summary before the odds get interesting. */
 const saysRain = (p: Period): boolean => /rain|shower|storm|drizzle/i.test(p.shortForecast ?? '');
 
+/** Thunderstorms are worth naming as storms; "rain" undersells them. */
+const saysStorm = (p: Period): boolean => /thunder|storm/i.test(p.shortForecast ?? '');
+
 /**
  * Rain gets the WHOLE forecast range, not the three-day window the temperature
  * rules use. Peter asked for a heads-up before rain arrives, and in LA that
@@ -58,14 +61,21 @@ function rainNote(periods: Period[]): string | null {
   const soon = when(coming.name);
   // Today's own weather is a statement; anything later is a heads-up.
   const isNow = periods.indexOf(coming) === 0;
+  const storm = saysStorm(coming);
+  const what = storm ? 'Storms' : 'Rain';
+  const noun = storm ? 'storms' : 'rain';
 
   if (odds >= RAIN_LIKELY) {
-    return isNow ? 'Rain today — take a jacket.' : `Rain is likely ${soon} — plan on a jacket.`;
+    return isNow
+      ? `${what} today — take a jacket.`
+      : `${what} ${storm ? 'are' : 'is'} likely ${soon} — plan on a jacket.`;
   }
   if (odds >= RAIN_EXPECTED) {
-    return isNow ? 'Rain today — worth a jacket.' : `Rain is expected ${soon} — worth having a jacket.`;
+    return isNow
+      ? `${what} today — worth a jacket.`
+      : `${what} ${storm ? 'are' : 'is'} expected ${soon} — worth having a jacket.`;
   }
-  return `There's a chance of rain ${soon} — worth keeping in mind.`;
+  return `There's a chance of ${noun} ${soon} — worth keeping in mind.`;
 }
 
 /** Turns "Monday" / "This Afternoon" into something that reads naturally. */
