@@ -24,21 +24,16 @@ export type Period = {
 };
 
 /**
- * Thresholds tuned for Los Angeles, not for weather in general.
+ * Rain, graded — LA gets little enough of it that even a real chance is worth
+ * saying out loud, and rain is the only thing this reports.
  *
- * LA summer highs sit in a narrow band, so an 8-degree move is genuinely
- * noticeable, and rain at any real probability is worth saying out loud
- * because it is rare enough to change plans.
+ * Temperature is deliberately NOT reported. Peter's call: a cool-down or a hot
+ * day passes without comment, so the line appears rarely enough that seeing one
+ * means something.
  */
-export const SWING_F = 8;
-/** Rain, graded — LA gets little enough that a real chance is worth saying. */
 export const RAIN_LIKELY = 50;
 export const RAIN_EXPECTED = 30;
 export const RAIN_CHANCE = 15;
-export const HOT_F = 95;
-export const CHILLY_F = 62;
-/** How far ahead to look for a temperature change; beyond this she'd forget. */
-export const LOOKAHEAD_DAYS = 3;
 
 const precip = (p: Period): number => p.probabilityOfPrecipitation?.value ?? 0;
 
@@ -87,37 +82,14 @@ function when(name: string): string {
 }
 
 /**
- * The heads-up, or null when the weather is doing nothing worth mentioning.
+ * The heads-up, or null when there is no rain to warn her about.
  *
- * Silence is the common case and the correct one. Every condition below has to
- * clear a threshold; nothing is reported merely because it is in the forecast.
+ * Silence is the overwhelmingly common case and the correct one. Rain and
+ * storms are the only things worth interrupting her morning for; heat, cold and
+ * a swing in either direction all pass without comment.
  */
 export function weatherNote(periods: Period[]): string | null {
-  const days = periods.filter((p) => p.isDaytime).slice(0, LOOKAHEAD_DAYS + 1);
-  const today = days[0];
-  if (!today) return null;
-
-  // Rain first: in LA it is the change that most obviously alters her day.
-  const rain = rainNote(periods);
-  if (rain) return rain;
-
-  // Then a real temperature swing against today.
-  for (const d of days.slice(1)) {
-    const drop = today.temperature - d.temperature;
-    if (drop >= SWING_F) {
-      return `Cooling off by ${when(d.name)} — ${d.temperature}°F, about ${drop} degrees below today.`;
-    }
-    if (-drop >= SWING_F) {
-      return `Warming up by ${when(d.name)} — ${d.temperature}°F, about ${-drop} degrees above today.`;
-    }
-  }
-
-  // Finally, today being extreme on its own terms, swing or no swing.
-  if (today.temperature >= HOT_F) return `Hot today — ${today.temperature}°F. Water, shade, the usual.`;
-  if (today.temperature <= CHILLY_F) return `Chilly today — only ${today.temperature}°F. Worth a layer.`;
-
-  // Nothing is changing. Say nothing.
-  return null;
+  return rainNote(periods);
 }
 
 /**

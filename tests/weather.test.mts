@@ -4,12 +4,9 @@ import {
   weatherNote,
   fetchForecast,
   todaysWeatherNote,
-  SWING_F,
   RAIN_CHANCE,
   RAIN_EXPECTED,
   RAIN_LIKELY,
-  HOT_F,
-  CHILLY_F,
   type Period,
 } from '../lib/weather';
 import { renderBrief } from '../lib/render';
@@ -64,9 +61,12 @@ test('the real USC forecast for a steady week stays silent', () => {
   assert.equal(weatherNote(steady), null);
 });
 
-test('a small drift is not a change', () => {
-  const drift = [day('This Afternoon', 86), day('Monday', 86 - (SWING_F - 1))];
-  assert.equal(weatherNote(drift), null, `${SWING_F - 1} degrees is not worth saying`);
+test('temperature is never reported, however big the swing', () => {
+  // Peter's call: rain and storms only. A cool-down is not worth a line.
+  assert.equal(weatherNote([day('This Afternoon', 92), day('Monday', 74)]), null, 'no cool-down line');
+  assert.equal(weatherNote([day('This Afternoon', 70), day('Monday', 92)]), null, 'no warm-up line');
+  assert.equal(weatherNote([day('This Afternoon', 104), day('Monday', 104)]), null, 'not even a hot day');
+  assert.equal(weatherNote([day('This Afternoon', 48), day('Monday', 48)]), null, 'not even a cold one');
 });
 
 test('a trace chance of rain is not rain', () => {
@@ -117,32 +117,11 @@ test('rain on the way is announced with when it arrives', () => {
   assert.match(note, /Tuesday/, `should say when: ${note}`);
 });
 
-test('a real cool-down is announced with the number', () => {
-  const cooling = [day('This Afternoon', 92), day('Monday', 92 - SWING_F)];
-  const note = weatherNote(cooling)!;
-  assert.match(note, /cool/i);
-  assert.match(note, /Monday/);
-  assert.match(note, new RegExp(`${92 - SWING_F}`), `should give the temperature: ${note}`);
-});
-
-test('a real warm-up is announced too', () => {
-  const warming = [day('This Afternoon', 74), day('Monday', 74 + SWING_F)];
-  const note = weatherNote(warming)!;
-  assert.match(note, /warm/i);
-});
-
-test('an extreme day is announced even with no swing coming', () => {
-  const hot = [day('This Afternoon', HOT_F), day('Monday', HOT_F), day('Tuesday', HOT_F)];
-  assert.match(weatherNote(hot)!, /hot/i);
-
-  const cold = [day('This Afternoon', CHILLY_F), day('Monday', CHILLY_F)];
-  assert.match(weatherNote(cold)!, /chilly|layer/i);
-});
-
-test('rain outranks a temperature swing when both are coming', () => {
-  // She can dress for cool. Rain is the one that changes the plan.
+test('rain still speaks when a temperature swing comes with it', () => {
   const both = [day('This Afternoon', 88), day('Monday', 70, 80)];
-  assert.match(weatherNote(both)!, /rain/i);
+  const note = weatherNote(both)!;
+  assert.match(note, /rain/i);
+  assert.doesNotMatch(note, /cool|degrees/i, 'and says nothing about the temperature');
 });
 
 // ── It must never be able to break the email ───────────────────────────────
