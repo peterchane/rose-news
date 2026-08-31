@@ -156,6 +156,44 @@ function warPenalty(title: string, sources: number): number {
 }
 
 /**
+ * Trivia: real stories about unimportant things.
+ *
+ * These clear every content filter — nothing about them is distressing — and
+ * they ride the corroboration score because two outlets happen to run the same
+ * light item. That is how a betting-market ban on George Santos outranked a
+ * government shutdown vote, and how a cancelled Met Gala exhibition placed
+ * third. Rose gets a few paragraphs a day; none should be spent here.
+ */
+const TRIVIA = new RegExp(
+  [
+    // Celebrity, awards and the red carpet.
+    /\b(met gala|red carpet|oscars?|grammys?|emmys?|golden globes?|vmas?|billboard chart|charts?\b.{0,20}\b(top|number one|no\. 1)|box office)\b/,
+    /\b(celebrity|celebrities|a-lister|influencer|reality (tv|star|show)|dating rumou?rs|engagement ring|red-carpet)\b/,
+    /\b(royal family|the royals|duchess|prince harry|meghan markle|kardashian|taylor swift'?s? (dress|outfit))\b/,
+    // Prediction and betting markets, which are not news about the world.
+    /\b(kalshi|polymarket|betting (market|odds|line)|prediction market|sportsbook|parlay)\b/,
+    // Magazine features about a subculture or a hobby. Fine writing, no news.
+    /\b(notes from an?|obsessive subculture|a day in the life|inside the world of|why i|what it'?s like to)\b/,
+    // Lists and service journalism.
+    /\b(\d+ (best|worst|things|ways|reasons)|here'?s where|ranked:|the best .{0,20} of \d{4})\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+export function isTrivia(title: string): boolean {
+  return TRIVIA.test(title);
+}
+
+/** Demoted hard rather than dropped — occasionally one of these IS the day. */
+export const TRIVIA_DEMOTION = 0.12;
+
+function triviaPenalty(title: string): number {
+  return isTrivia(title) ? TRIVIA_DEMOTION : 1;
+}
+
+/**
  * Teams Rose wants only when something notable happens. A trade or a streak is
  * promoted hard; a routine game recap is pushed down so it doesn't spend a slot.
  */
@@ -263,16 +301,22 @@ export function selectClusters(
         scoreCluster(c.articles) *
         favoriteBoost(primary.title, blurb, section, teamPattern) *
         warPenalty(primary.title, coverage.length) *
+        triviaPenalty(primary.title) *
         techPenalty(section, primary.weight, coverage.length) *
         notableOnlyAdjustment(primary.title, section, notableOnlyPattern, notableEvent),
     };
   });
 
+  // Peter: "I'd rather have no good news than random irrelevant stuff." A
+  // demotion isn't enough here — a demoted story still closes the email when
+  // it's the only good news left. In this one section, trivia is dropped.
+  const notJunkGoodNews = scored.filter((c) => !(c.section === 'good' && isTrivia(c.title)));
+
   // Sports is only worth a slot when it's about a team Rose follows. Without
   // this the quota gets filled with whatever was left — a Jets practice injury,
   // a team she has no stake in — purely because the section had room.
   const anyTeams = Boolean(teamPattern || notableOnlyPattern);
-  const relevant = scored.filter((c) => {
+  const relevant = notJunkGoodNews.filter((c) => {
     if (c.section !== 'sports' || !anyTeams) return true;
     const hay = `${c.title} ${c.blurb}`;
     return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));

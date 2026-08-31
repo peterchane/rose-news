@@ -285,6 +285,13 @@ const DISTRESSING = new RegExp(
 
     // Wildfires and the natural disasters that read the same way.
     /\b(wildfire|wild fire|brush ?fire|forest fire|grass ?fire|firestorm|blaze)\w*/,
+    // A fire is usually named after a place, never after the word "wildfire" —
+    // "Ross Fire still burning, 85,000 acres scorched" cleared every pattern
+    // above. Acreage and containment language are the giveaways.
+    /\b\d[\d,]*\s*acres?\b/,
+    /\bacres?\s+(burned|scorched|charred|destroyed|consumed)\b/,
+    /\bfire\s+(crews?|contained|containment|burning|burns|spread|danger|risk|weather|threat)\b/,
+    /\b(still burning|not contained|percent contained|% contained|fire evacuat\w*)\b/,
     // Not a bare `evacuat` — that also matches conflict reporting like
     // "Israel strikes Lebanon after evacuation warning".
     /\b(evacuation order|containment|acres? burned|burn scar|fire season|fire crews)\b/,
@@ -305,9 +312,23 @@ const MEDICAL_GOOD_NEWS =
 /** A drug being approved or trialled is medicine, not drug-crime news. */
 const DRUG_AS_MEDICINE = /\b(drug|therapy|treatment)\s+(approv|trial|works|shows|study|candidate)\w*/i;
 
+/**
+ * Fires are named after places, not after the word "wildfire": the Ross Fire,
+ * the Palisades Fire, the Camp Fire. Case matters here — a capital F is what
+ * separates a named fire from "under fire" or "ceasefire" — so this cannot live
+ * in the case-insensitive block above.
+ */
+const NAMED_FIRE = /\b[A-Z][a-zA-Z]+ Fire\b/;
+/** Ordinary English that happens to end in the word Fire. */
+const NOT_A_FIRE = /\b(under|open|opened|opening|cease|ceased|on|of|friendly|hold|held|return|returned|drew|draw|catch|caught|set) Fire\b/i;
+
+export function isFireStory(title: string): boolean {
+  return NAMED_FIRE.test(title) && !NOT_A_FIRE.test(title);
+}
+
 export function isDistressing(title: string): boolean {
   if (MEDICAL_GOOD_NEWS.test(title) || DRUG_AS_MEDICINE.test(title)) return false;
-  return DISTRESSING.test(title);
+  return DISTRESSING.test(title) || isFireStory(title);
 }
 
 export function isReportableNews(

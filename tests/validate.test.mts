@@ -313,3 +313,52 @@ test('an ordinary product recall is not mistaken for disease news', async () => 
     assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
   }
 });
+
+test('fires are blocked however the headline names them', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // Fires are named after places, not after the word "wildfire". "Ross Fire
+  // still burning, 85,000 acres scorched" reached a draft past every pattern
+  // that only looked for "wildfire" or "blaze".
+  for (const t of [
+    'Ross Fire still burning after a week, with 85,000 acres scorched',
+    'Palisades Fire forces evacuations in Los Angeles',
+    'Crews reach 40% containment on the Camp Fire',
+    'Fire crews battle blaze near Malibu',
+    'Wildfire still burning after a week',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});
+
+test('ordinary English ending in "fire" is not a fire story', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  for (const t of [
+    'Trump comes under fire from Senate Republicans',
+    'Gaza ceasefire holds for a third week',
+    'Senate passes spending bill after long debate',
+  ]) {
+    assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
+  }
+});
+
+test('trivia is demoted hard, and never closes the email as good news', async () => {
+  const { isTrivia, TRIVIA_DEMOTION } = await import('../lib/select');
+  // A betting-market ban outranked a government shutdown vote because two
+  // outlets happened to carry it. Corroboration is not importance.
+  for (const t of [
+    'Kalshi bans ex-congressman George Santos for life after suspicious trades',
+    'Met Gala exhibition honoring John Galliano is cancelled after backlash',
+    '‘I Work, I Sleep, I Eat, I Ferret’: Notes From an Obsessive Subculture',
+    '10 best things to do this weekend',
+  ]) {
+    assert.ok(isTrivia(t), `should be trivia: ${t}`);
+  }
+  for (const t of [
+    'House returns with vote expected on Senate bill to prevent shutdown',
+    'US and Iran trade strikes for first time in weeks',
+    'USC football gears up for 2026 with playoff goals',
+  ]) {
+    assert.ok(!isTrivia(t), `should NOT be trivia: ${t}`);
+  }
+  assert.ok(TRIVIA_DEMOTION < 0.25, 'demotion must actually bury it');
+});
