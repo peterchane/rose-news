@@ -154,7 +154,7 @@ const brief: Brief = {
 };
 
 test('the weather line leads the email when there is one', () => {
-  const r = renderBrief(brief, clusters, 'Rain is expected Tuesday — worth having a jacket.');
+  const r = renderBrief(brief, clusters, 'Rain is expected Tuesday.');
   assert.match(r.text, /^Rain is expected Tuesday/, 'plaintext leads with it');
   assert.ok(r.html.includes('Rain is expected Tuesday'), 'and it is in the HTML');
   assert.ok(
@@ -196,4 +196,20 @@ test('thunderstorms are called storms, not rain', () => {
   const note = weatherNote(stormy)!;
   assert.match(note, /storms/i, `should name storms: ${note}`);
   assert.doesNotMatch(note, /\bRain is\b/, 'and not undersell them as rain');
+});
+
+test('the line states the weather and stops, with no advice attached', () => {
+  // Peter: "not worth keeping in mind. just There's a chance of rain Saturday
+  // night." She can decide what to do about rain on her own.
+  const lines = [
+    weatherNote([day('This Afternoon', 80), day('Monday', 78, RAIN_CHANCE)])!,
+    weatherNote([day('This Afternoon', 80), day('Monday', 78, RAIN_EXPECTED)])!,
+    weatherNote([day('This Afternoon', 80), day('Monday', 78, RAIN_LIKELY)])!,
+    weatherNote([day('This Afternoon', 78, RAIN_LIKELY)])!,
+  ];
+  for (const line of lines) {
+    assert.doesNotMatch(line, /jacket|keep in mind|keeping in mind|worth|plan on/i, `advice leaked: ${line}`);
+    assert.doesNotMatch(line, /—/, `no trailing clause: ${line}`);
+    assert.match(line, /\.$/, `one clean sentence: ${line}`);
+  }
 });

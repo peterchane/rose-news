@@ -60,17 +60,15 @@ function rainNote(periods: Period[]): string | null {
   const what = storm ? 'Storms' : 'Rain';
   const noun = storm ? 'storms' : 'rain';
 
+  // A plain statement of fact, with no advice attached. Peter's call: she can
+  // decide what to do about rain herself.
   if (odds >= RAIN_LIKELY) {
-    return isNow
-      ? `${what} today — take a jacket.`
-      : `${what} ${storm ? 'are' : 'is'} likely ${soon} — plan on a jacket.`;
+    return isNow ? `${what} today.` : `${what} ${storm ? 'are' : 'is'} likely ${soon}.`;
   }
   if (odds >= RAIN_EXPECTED) {
-    return isNow
-      ? `${what} today — worth a jacket.`
-      : `${what} ${storm ? 'are' : 'is'} expected ${soon} — worth having a jacket.`;
+    return isNow ? `${what} today.` : `${what} ${storm ? 'are' : 'is'} expected ${soon}.`;
   }
-  return `There's a chance of ${noun} ${soon} — worth keeping in mind.`;
+  return `There's a chance of ${noun} ${soon}.`;
 }
 
 /** Turns "Monday" / "This Afternoon" into something that reads naturally. */
