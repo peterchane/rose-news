@@ -343,3 +343,37 @@ test('trivia is demoted hard, and never closes the email as good news', async ()
   }
   assert.ok(TRIVIA_DEMOTION < 0.25, 'demotion must actually bury it');
 });
+
+test('a big USC story must be cited when one is available', async () => {
+  const { isBigUscStory } = await import('../lib/write');
+  // The empty-seats story sat unused in the candidate list because USC was
+  // purely optional. Peter: "yes if it's a big story like this one."
+  const big = {
+    ...cluster(11, 'usc'),
+    title: "USC's empty seats show fans still haven't bought in on Lincoln Riley's hype",
+  };
+  assert.ok(isBigUscStory(big.title));
+  // Deliberately cites no USC story, so the new rule is what fires.
+  const noUsc = { ...ok(), paragraphs: [para(9, 1), para(1, 2), para(3, 4), para(5, 6), para(7, 8)] };
+  const problems = validateBrief(noUsc, [...CLUSTERS, big]);
+  assert.ok(problems.some((p) => /significant USC story/.test(p)), problems.join(' | '));
+});
+
+test('routine USC beat coverage is still never forced', async () => {
+  const { isBigUscStory } = await import('../lib/write');
+  for (const t of [
+    'USC practice report: three players day-to-day',
+    'USC depth chart notes ahead of Saturday',
+    'CPT rule change affects internship opportunities for USC students',
+  ]) {
+    assert.ok(!isBigUscStory(t), `should stay optional: ${t}`);
+  }
+  const minor = { ...cluster(11, 'usc'), title: 'USC practice report: three players day-to-day' };
+  assert.ok(!validateBrief(ok(), [...CLUSTERS, minor]).some((p) => /significant USC/.test(p)));
+});
+
+test('citing the USC story satisfies the rule', () => {
+  const big = { ...cluster(11, 'usc'), title: 'Lincoln Riley fired after fourth straight loss' };
+  const b = { ...ok(), paragraphs: [para(9, 10), para(1, 2), para(3, 4), para(5, 6), para(11, 7)] };
+  assert.ok(!validateBrief(b, [...CLUSTERS, big]).some((p) => /significant USC/.test(p)));
+});

@@ -21,6 +21,10 @@ export type Article = {
 
 const FETCH_TIMEOUT_MS = 12_000;
 
+/** How long a USC story stays eligible, whichever outlet ran it. */
+export const USC_MAX_AGE_HOURS = 96;
+const USC_STORY = /\b(USC|Trojans)\b/;
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
@@ -433,6 +437,11 @@ export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()
   // doesn't promote the one behind it.
   let position = -1;
   const cutoff = now - feed.maxAgeHours * 60 * 60 * 1000;
+  // USC gets a longer memory than the rest of sports. The national outlets run
+  // on a 20-hour window, which is fine for scores and wrong for her team: the
+  // empty-seats story about Lincoln Riley's program aged out before it could be
+  // used. Repeat suppression already stops anything being sent twice.
+  const uscCutoff = now - Math.max(feed.maxAgeHours, USC_MAX_AGE_HOURS) * 60 * 60 * 1000;
 
   const articles: Article[] = [];
   for (const item of items) {
@@ -450,7 +459,8 @@ export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()
     if (!isReportableNews(title, link, feed.section, blurbForFilter)) continue;
     // A feed with no dates at all would otherwise contribute nothing; but a
     // missing date on an individual item is more likely stale than fresh.
-    if (!publishedAt || publishedAt.getTime() < cutoff) continue;
+    const oldestAllowed = USC_STORY.test(title) ? uscCutoff : cutoff;
+    if (!publishedAt || publishedAt.getTime() < oldestAllowed) continue;
 
     const blurb = stripHtml(
       text((item as any).description) ||

@@ -185,6 +185,34 @@ export function dropUncited(paragraphs: string[], min = 5): string[] {
   return keep.length >= min ? keep : paragraphs;
 }
 
+/**
+ * Whether a USC story is worth insisting on.
+ *
+ * Big means the program: the coach, the season, the fans, a ranking, a result
+ * that matters. Not a practice report, a depth-chart note or a minor injury —
+ * those stay optional, which is what "not minor ones" means.
+ */
+const BIG_USC = new RegExp(
+  [
+    /\b(fires?|fired|hires?|hired|coach|coaching|riley)\b/,
+    /\b(playoff|postseason|bowl|championship|title|rivalry|ranked|ranking|top 25|upset)\b/,
+    /\b(attendance|empty seats|crowd|fans|sellout|ticket sales|student section)\b/,
+    /\b(quarterback|starting qb|transfer portal|commit(s|ted|ment)?|recruiting class|signing day)\b/,
+    /\b(wins?|won|loses?|lost|beat|defeat\w*|streak|undefeated|season opener|opening game)\b/,
+    /\b(nil\b|conference realignment|big ten|athletic director|probation|sanctions?)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+/** Routine beat coverage that should never force its way into the email. */
+const MINOR_USC = /\b(practice report|depth chart|walk-?on|roster move|day-to-day|questionable|probable|scrimmage|spring ball|media availability)\b/i;
+
+export function isBigUscStory(title: string): boolean {
+  return !MINOR_USC.test(title) && BIG_USC.test(title);
+}
+
 /** Matches the model's citation syntax: [anchor text](#12) */
 export const CITATION_RE = /\[([^\]\n]+)\]\(#(\d+)\)/g;
 
@@ -499,10 +527,22 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     );
   }
 
+  // A BIG USC story must be cited; a routine one still must not be forced.
+  // Peter: "yes if it's a big story like this one... but not minor ones."
+  // The empty-seats story about Lincoln Riley's program sat in the candidate
+  // list unused because USC was purely optional.
+  const bigUsc = clusters.find((c) => c.section === 'usc' && isBigUscStory(c.title));
+  if (bigUsc && ![...allCited].some((id) => sectionById.get(id) === 'usc')) {
+    nit(
+      `A significant USC story was available ("${bigUsc.title.slice(0, 60)}") but not cited. ` +
+        'Include it — she follows the program closely.',
+    );
+  }
+
   for (const [section, label, hint] of [
-    // USC is a preference, not a requirement. The Daily Trojan publishes weekly,
-    // so demanding it every day either forces a repeat or burns retries on a
-    // brief that is otherwise fine.
+    // Routine USC coverage stays a preference. The Daily Trojan publishes
+    // weekly, so demanding something every day forces a repeat or burns a retry
+    // on a brief that is otherwise fine.
     ['sports', 'sports', 'normally near the end'],
     ['jewish', 'Jewish holiday', 'one or two sentences on the next holiday, near the end'],
   ] as const) {

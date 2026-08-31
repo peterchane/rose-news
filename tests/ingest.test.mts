@@ -491,3 +491,20 @@ test('ordinary school news is unaffected', () => {
     assert.ok(isReportableNews(t, 'https://example.com/news/x'), `should keep: ${t}`);
   }
 });
+
+test('a USC story outlives the short sports window', async () => {
+  const { parseFeedItems, USC_MAX_AGE_HOURS } = await import('../lib/ingest');
+  const now = Date.now();
+  const hoursAgo = (h: number) => new Date(now - h * 3.6e6).toUTCString();
+  // National sports feeds run a 20-hour window, right for scores and wrong for
+  // her team: the empty-seats story aged out before it could be used.
+  const feed = { section: 'sports' as const, source: 'CBS Sports', url: 'https://x/f', weight: 1, maxAgeHours: 20 };
+  const xml = `<rss><channel>
+    <item><title>USC's empty seats show fans haven't bought in</title><link>https://x/1</link><pubDate>${hoursAgo(44)}</pubDate></item>
+    <item><title>Yankees win in extra innings</title><link>https://x/2</link><pubDate>${hoursAgo(44)}</pubDate></item>
+  </channel></rss>`;
+  const got = parseFeedItems(xml, feed, now).map((a) => a.title);
+  assert.ok(got.some((t) => /USC/.test(t)), 'USC story survives 44 hours');
+  assert.ok(!got.some((t) => /Yankees/.test(t)), 'ordinary sports still expires at 20 hours');
+  assert.ok(USC_MAX_AGE_HOURS >= 48);
+});
