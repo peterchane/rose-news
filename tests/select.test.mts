@@ -18,6 +18,8 @@ function article(over: Partial<Article> = {}): Article {
     section: 'world',
     weight: 1,
     publishedAt: new Date(Date.now() - 60 * 60 * 1000),
+    // Mid-feed by default, so placement doesn't quietly skew existing cases.
+    rank: 20,
     blurb: 'A blurb that is long enough to be chosen as the cluster blurb for testing.',
     ...over,
   };
@@ -392,4 +394,26 @@ test('her teams still get through', () => {
   const sp = clusters.filter((c) => c.section === 'sports');
   assert.equal(sp.length, 1);
   assert.match(sp[0].title, /Cubs/);
+});
+
+test("an outlet's own front-page placement counts as importance", async () => {
+  const { placementBoost, LEAD_BOOST } = await import('../lib/select');
+  // Discarding placement is why the day's lead could go missing: NPR's first
+  // item and its fortieth scored identically.
+  assert.equal(placementBoost(0), LEAD_BOOST, 'the lead story');
+  assert.ok(placementBoost(0) > placementBoost(5), 'lead beats mid-page');
+  assert.ok(placementBoost(5) > placementBoost(30), 'mid-page beats the tail');
+  assert.equal(placementBoost(40), 1, 'deep in the feed earns nothing');
+});
+
+test('a front-page lead outranks a trivial story two outlets happened to run', () => {
+  const clusters = selectClusters(
+    [
+      article({ title: 'US and Iran trade strikes near the Strait of Hormuz', section: 'us', rank: 0 }),
+      article({ title: 'Kalshi bans a former congressman after suspicious trades', section: 'us', rank: 25, source: 'CBS News' }),
+      article({ title: 'Kalshi bans a former congressman after suspicious trades', section: 'us', rank: 30, source: 'NBC News' }),
+    ],
+    QUOTAS,
+  );
+  assert.match(clusters[0].title, /Iran/, `lead should win: ${clusters.map((c) => c.title).join(' | ')}`);
 });

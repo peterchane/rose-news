@@ -80,6 +80,28 @@ function hoursOld(date: Date): number {
  * to be the day's actual news than a single outlet's feature. Recency and outlet
  * weight break ties.
  */
+/**
+ * How much an outlet's own placement counts.
+ *
+ * Front pages are edited: the top item is what that newsroom thinks is the
+ * day's story. Ignoring that was why the lead could vanish from the brief —
+ * NPR's first item and its fortieth scored identically, so the brief filled up
+ * with whatever happened to be carried twice.
+ *
+ * The best placement any outlet gave a story wins, so one front page leading
+ * with it is enough.
+ */
+export const LEAD_BOOST = 3.0;
+export const TOP_BOOST = 1.8;
+export const UPPER_BOOST = 1.25;
+
+export function placementBoost(bestRank: number): number {
+  if (bestRank <= 2) return LEAD_BOOST;
+  if (bestRank <= 6) return TOP_BOOST;
+  if (bestRank <= 14) return UPPER_BOOST;
+  return 1;
+}
+
 function scoreCluster(articles: Article[]): number {
   const distinctSources = new Set(articles.map((a) => a.source)).size;
   const corroboration = Math.pow(distinctSources, 1.6);
@@ -87,7 +109,8 @@ function scoreCluster(articles: Article[]): number {
   const newest = Math.min(...articles.map((a) => hoursOld(a.publishedAt)));
   // Full credit for the last 6 hours, decaying to ~0.4 at 30 hours.
   const freshness = Math.max(0.4, 1 - Math.max(0, newest - 6) / 40);
-  return corroboration * bestWeight * freshness;
+  const placement = placementBoost(Math.min(...articles.map((a) => a.rank ?? 99)));
+  return corroboration * bestWeight * freshness * placement;
 }
 
 /**
@@ -169,6 +192,10 @@ const TRIVIA = new RegExp(
     // Celebrity, awards and the red carpet.
     /\b(met gala|red carpet|oscars?|grammys?|emmys?|golden globes?|vmas?|billboard chart|charts?\b.{0,20}\b(top|number one|no\. 1)|box office)\b/,
     /\b(celebrity|celebrities|a-lister|influencer|reality (tv|star|show)|dating rumou?rs|engagement ring|red-carpet)\b/,
+    // Fashion and gallery culture. A cancelled couture retrospective rode the
+    // front-page boost straight to the top of the brief.
+    /\b(fashion|couture|runway show|met museum|museum show|retrospective|gallery show)\b/,
+    /\bexhibitions?\b.{0,40}\b(cancel\w*|pulled|postponed|shelved)\b/,
     /\b(royal family|the royals|duchess|prince harry|meghan markle|kardashian|taylor swift'?s? (dress|outfit))\b/,
     // Prediction and betting markets, which are not news about the world.
     /\b(kalshi|polymarket|betting (market|odds|line)|prediction market|sportsbook|parlay)\b/,

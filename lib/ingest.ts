@@ -9,6 +9,14 @@ export type Article = {
   weight: number;
   publishedAt: Date;
   blurb: string;
+  /**
+   * Where the outlet placed this in its feed, counting from 0.
+   *
+   * A front page is an editorial ranking, and discarding it was why the day's
+   * lead story could go missing: NPR's top item scored exactly the same as its
+   * fortieth. This is the outlet telling us what it thinks matters today.
+   */
+  rank: number;
 };
 
 const FETCH_TIMEOUT_MS = 12_000;
@@ -421,10 +429,14 @@ async function fetchFeed(feed: Feed): Promise<Article[]> {
  */
 export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()): Article[] {
   const items = extractRawItems(parser.parse(xml));
+  // Position in the feed, counted before any filtering, so a dropped story
+  // doesn't promote the one behind it.
+  let position = -1;
   const cutoff = now - feed.maxAgeHours * 60 * 60 * 1000;
 
   const articles: Article[] = [];
   for (const item of items) {
+    position++;
     const title = stripHtml(text((item as any).title));
     const link = cleanUrl(extractLink(item as any));
     const publishedAt = parseDate(item as any);
@@ -454,6 +466,7 @@ export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()
       weight: feed.weight,
       publishedAt,
       blurb,
+      rank: position,
     });
   }
   return articles;
