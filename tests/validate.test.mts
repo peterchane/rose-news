@@ -79,51 +79,32 @@ test('rejects a paragraph that is mostly link text', () => {
   assert.ok(problems.some((p) => /mostly link text/.test(p)), problems.join(' | '));
 });
 
-test('rejects a brief with no good news when good news was available', () => {
-  const withGood = [...CLUSTERS, cluster(11, 'good')];
-  const problems = validateBrief(ok(), withGood);
-  assert.ok(problems.some((p) => /good-news/.test(p)), problems.join(' | '));
-});
-
-test('accepts a brief that includes the good news', () => {
-  const withGood = [...CLUSTERS, cluster(11, 'good')];
-  const b = { ...ok(), paragraphs: [para(9, 10), para(1, 2), para(3, 4), para(5, 6), para(11, 7)] };
-  assert.deepEqual(validateBrief(b, withGood), []);
-});
-
-test('does not demand good news when none was available', () => {
-  assert.deepEqual(validateBrief(ok(), CLUSTERS), []);
-});
-
-test('good news must close, but the opening is free', () => {
-  const cs = [...CLUSTERS, cluster(11, 'good')];
-  // Good news buried in the middle — only that rule should fire.
-  const wrong = { ...ok(), paragraphs: [para(1, 2), para(11, 3), para(4, 5), para(6, 7), para(9, 8)] };
-  const problems = validateBrief(wrong, cs);
-  assert.ok(problems.some((p) => /CLOSE with the good news/.test(p)), problems.join(' | '));
-  assert.ok(!problems.some((p) => /OPEN with sports/.test(p)), 'the opening is not fixed');
+test('no good-news rule survives — the section was removed entirely', () => {
+  // Peter: "the good news stuff seems really random. lets remove it." Nothing
+  // may demand, order, or reserve a closing slot for it any more.
+  const problems = validateBrief(ok(), CLUSTERS);
+  assert.ok(!problems.some((p) => /good.news/i.test(p)), problems.join(' | '));
+  assert.deepEqual(problems, [], 'an ordinary brief is simply valid now');
 });
 
 test('any section may open the email', () => {
-  const cs = [...CLUSTERS, cluster(11, 'good')];
   // News-first, sports-first and USC-first should all be acceptable.
   for (const first of [para(1, 2), para(9, 1), para(10, 1)]) {
-    const b = { ...ok(), paragraphs: [first, para(3, 4), para(5, 6), para(9, 7), para(11, 8)] };
-    assert.deepEqual(validateBrief(b, cs), [], `opening should be allowed: ${first.slice(0, 30)}`);
+    const b = { ...ok(), paragraphs: [first, para(3, 4), para(5, 6), para(9, 7), para(8, 1)] };
+    assert.deepEqual(validateBrief(b, CLUSTERS), [], `opening should be allowed: ${first.slice(0, 30)}`);
   }
 });
 
 test('accepts the correct order', () => {
-  const cs = [...CLUSTERS, cluster(11, 'good')];
-  const right = { ...ok(), paragraphs: [para(9, 1), para(2, 3), para(4, 5), para(6, 7), para(11, 8)] };
-  assert.deepEqual(validateBrief(right, cs), []);
+  const right = { ...ok(), paragraphs: [para(9, 1), para(2, 3), para(4, 5), para(6, 7), para(8, 10)] };
+  assert.deepEqual(validateBrief(right, CLUSTERS), []);
 });
 
 test('rejects a foreign story sandwiched between US stories', () => {
   const cs = [
     cluster(1, 'us'), cluster(2, 'us'), cluster(3, 'world'), cluster(4, 'us'),
     cluster(5, 'us'), cluster(6, 'us'), cluster(7, 'us'), cluster(8, 'us'),
-    cluster(9, 'sports'), cluster(10, 'good'),
+    cluster(9, 'sports'), cluster(10, 'usc'),
   ];
   const b = { ...ok(), paragraphs: [para(9, 1), para(1, 2), para(3, 3), para(4, 5), para(10, 6)] };
   const problems = validateBrief(b, cs);
@@ -134,7 +115,7 @@ test('accepts all US news ahead of foreign news', () => {
   const cs = [
     cluster(1, 'us'), cluster(2, 'us'), cluster(3, 'world'), cluster(4, 'us'),
     cluster(5, 'us'), cluster(6, 'us'), cluster(7, 'us'), cluster(8, 'us'),
-    cluster(9, 'sports'), cluster(10, 'good'),
+    cluster(9, 'sports'), cluster(10, 'usc'),
   ];
   const b = { ...ok(), paragraphs: [para(9, 1), para(2, 4), para(5, 6), para(3, 3), para(10, 7)] };
   assert.deepEqual(validateBrief(b, cs), []);
@@ -172,7 +153,7 @@ test('the lead may be foreign; the rest still runs US before foreign', () => {
   const cs = [
     cluster(1, 'world'), cluster(2, 'us'), cluster(3, 'us'), cluster(4, 'world'),
     cluster(5, 'us'), cluster(6, 'us'), cluster(7, 'us'), cluster(8, 'us'),
-    cluster(9, 'sports'), cluster(10, 'good'),
+    cluster(9, 'sports'), cluster(10, 'usc'),
   ];
   // Foreign lead, then US, then foreign, sports, good — allowed.
   const okLead = {

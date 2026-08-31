@@ -5,7 +5,7 @@ import type { Article } from '../lib/ingest';
 import type { Section } from '../lib/feeds';
 
 const QUOTAS: Record<Section, number> = {
-  us: 4, world: 5, business: 3, tech: 3, science: 3, sports: 2, usc: 2, good: 2, jewish: 1,
+  us: 4, world: 5, business: 3, tech: 3, science: 3, sports: 2, usc: 2, jewish: 1,
 };
 
 let seq = 0;

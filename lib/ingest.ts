@@ -353,9 +353,7 @@ export function isReportableNews(
   if (COLUMN_TITLE.test(title)) return false;
   // Applies everywhere, including good news — especially good news.
   if (isSentimentalFiller(title)) return false;
-  // Good-news outlets report rescues and recoveries, which legitimately use the
-  // same words as crime reporting ("kidnapped girl reunited with family").
-  if (section !== 'good' && (isViolentCrime(title) || isMacabre(title) || isDistressing(title))) {
+  if (isViolentCrime(title) || isMacabre(title) || isDistressing(title)) {
     return false;
   }
   return true;

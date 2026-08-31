@@ -151,11 +151,13 @@ test('keeps sports events that actually happened', () => {
   }
 });
 
-test('good-news feeds are exempt from the violent-crime filter', () => {
-  // A rescue story uses the same words as a crime story but is the opposite.
+test('no section is exempt from the crime filter any more', () => {
+  // The exemption existed only for good-news outlets, which are gone. A rescue
+  // story reads like a crime story, and nothing now argues for letting it in.
   const t = 'Girl kidnapped 12 years ago reunited with her family';
-  assert.ok(!isReportableNews(t, 'https://goodnewsnetwork.org/news/x'), 'blocked in a normal section');
-  assert.ok(isReportableNews(t, 'https://goodnewsnetwork.org/news/x', 'good'), 'allowed in good news');
+  for (const section of [undefined, 'science', 'us', 'world']) {
+    assert.ok(!isReportableNews(t, 'https://example.com/news/x', section), `blocked in ${section}`);
+  }
 });
 
 test('drops macabre stories that carry no crime verb', () => {
@@ -227,7 +229,7 @@ test('drops recurring columns from the good-news feeds', () => {
     'Your Weekly Horoscope — Free Will Astrology',
     'What went right this week: the good news that matters',
   ]) {
-    assert.ok(!isReportableNews(t, 'https://goodnewsnetwork.org/x', 'good'), `should drop: ${t}`);
+    assert.ok(!isReportableNews(t, 'https://goodnewsnetwork.org/x', 'science'), `should drop: ${t}`);
   }
 });
 
@@ -237,7 +239,7 @@ test('keeps real good-news events', () => {
     'Rare Australian fish named creature of the year after recovery',
     'Town raises enough to rebuild its library in three weeks',
   ]) {
-    assert.ok(isReportableNews(t, 'https://goodnewsnetwork.org/x', 'good'), `should keep: ${t}`);
+    assert.ok(isReportableNews(t, 'https://goodnewsnetwork.org/x', 'science'), `should keep: ${t}`);
   }
 });
 
@@ -404,20 +406,19 @@ test('drops feel-good filler from the good-news feeds', () => {
     'Heartwarming moment stranger pays for family groceries',
     'Good samaritan returns lost wallet with cash intact',
   ]) {
-    assert.ok(!isReportableNews(t, 'https://goodnewsnetwork.org/x', 'good'), `should drop: ${t}`);
+    assert.ok(!isReportableNews(t, 'https://goodnewsnetwork.org/x', 'science'), `should drop: ${t}`);
   }
 });
 
-test('keeps substantive good news', () => {
-  // Species-level recovery, discoveries and real advances are the point.
+test('keeps genuine advances that are not about disease', () => {
+  // Disease news is out entirely now — "malaria cases fall" is still a story
+  // about malaria — but discoveries and records still belong.
   for (const t of [
     'Sea eagle chick hatches as Ireland reintroduction takes hold',
     'National Geographic photographs its 18,000th species',
     'New York sends $189 million to close the summer hunger gap',
-    'Malaria cases fall to lowest level on record',
-    'Gene therapy cures rare blood disorder in trial',
   ]) {
-    assert.ok(isReportableNews(t, 'https://goodnewsnetwork.org/x', 'good'), `should keep: ${t}`);
+    assert.ok(isReportableNews(t, 'https://example.com/x', 'science'), `should keep: ${t}`);
   }
 });
 
@@ -469,7 +470,7 @@ test('school violence is filtered absolutely, headline or summary', () => {
 
 test('the good-news exemption does not apply to school violence', () => {
   assert.ok(
-    !isReportableNews('Students return to school a year after the shooting', 'https://goodnewsnetwork.org/x', 'good'),
+    !isReportableNews('Students return to school a year after the shooting', 'https://goodnewsnetwork.org/x', 'science'),
   );
 });
 

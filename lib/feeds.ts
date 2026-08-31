@@ -8,7 +8,7 @@ import { join } from 'node:path';
  * blip or a broken share setting can't stop the brief going out.
  */
 
-export type Section = 'us' | 'world' | 'business' | 'tech' | 'science' | 'sports' | 'usc' | 'good' | 'jewish';
+export type Section = 'us' | 'world' | 'business' | 'tech' | 'science' | 'sports' | 'usc' | 'jewish';
 
 export type Feed = {
   source: string;
@@ -30,7 +30,7 @@ export type FeedConfig = {
   origin: 'sheet' | 'file';
 };
 
-export const SECTION_ORDER: Section[] = ['us', 'world', 'business', 'tech', 'science', 'sports', 'usc', 'good', 'jewish'];
+export const SECTION_ORDER: Section[] = ['us', 'world', 'business', 'tech', 'science', 'sports', 'usc', 'jewish'];
 
 export const SECTION_LABELS: Record<Section, string> = {
   us: 'United States',
@@ -40,7 +40,6 @@ export const SECTION_LABELS: Record<Section, string> = {
   science: 'Science, Health & Climate',
   sports: 'Sports & Culture',
   usc: 'USC (Daily Trojan)',
-  good: 'Good News — include one of these every day',
   jewish: 'Upcoming Jewish holiday — mention every day',
 };
 
@@ -54,7 +53,6 @@ const DEFAULT_QUOTAS: Record<Section, number> = {
   science: 6,
   sports: 4,
   usc: 4,
-  good: 5,
   jewish: 1,
 };
 

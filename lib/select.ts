@@ -307,16 +307,11 @@ export function selectClusters(
     };
   });
 
-  // Peter: "I'd rather have no good news than random irrelevant stuff." A
-  // demotion isn't enough here — a demoted story still closes the email when
-  // it's the only good news left. In this one section, trivia is dropped.
-  const notJunkGoodNews = scored.filter((c) => !(c.section === 'good' && isTrivia(c.title)));
-
   // Sports is only worth a slot when it's about a team Rose follows. Without
   // this the quota gets filled with whatever was left — a Jets practice injury,
   // a team she has no stake in — purely because the section had room.
   const anyTeams = Boolean(teamPattern || notableOnlyPattern);
-  const relevant = notJunkGoodNews.filter((c) => {
+  const relevant = scored.filter((c) => {
     if (c.section !== 'sports' || !anyTeams) return true;
     const hay = `${c.title} ${c.blurb}`;
     return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));

@@ -216,7 +216,6 @@ ORDER:
 - Sports only when it's about a team she follows. If no sports candidates are offered, skip sports entirely — never fill the space with a team she has no stake in.
 - After the lead, every US story comes before any foreign one. The lead itself can be foreign if that's genuinely the day's biggest story. Include a major tech story when one is offered.
 - The Jewish holiday gets one or two sentences, near the end.
-- Good news always closes the email.
 Never announce the structure ("now to the news"). Just move between paragraphs.
 
 FORM:
@@ -244,8 +243,6 @@ PICKING STORIES:
 - Something must have happened: a vote, a ruling, a result, a launch. Not anniversaries, retrospectives, explainers, or someone restating a position.
 - She follows USC football closely, plus SMU and Michigan. Cubs for major news only — a trade, signing, streak or playoff run, never a game result. She does not follow the Dodgers, Lakers, Rams, Chargers, Clippers or Bears.
 - Sports means an event, not rankings or fantasy advice.
-- Good news must be SUBSTANTIVE: a discovery, a species recovering, a record, a policy that worked, something restored or built. Never a feel-good vignette — one animal freed, one stranger's kind gesture, a local rescue. If the only thing that happened is that something nice happened to one creature, it isn't worth her time.
-- Good news: prefer California, the West, or national.
 - Foreign news only if it's genuinely big. Otherwise leave it out.
 
 OUTPUT: return "subject" (a string, names 2-3 stories, under 80 chars) and "paragraphs" (an array of strings). Both, always.`;
@@ -461,23 +458,13 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
 
   // Sports gets a quota but nothing otherwise forces the writer to spend it,
   // and it kept getting dropped for another science item.
-  // Order is fixed: sports opens, good news closes.
   const sectionsOf = (p: string) =>
     [...p.matchAll(CITATION_RE)].map((m) => sectionById.get(Number(m[2])));
 
-  if (brief.paragraphs.length > 0) {
-    // The opening is deliberately unconstrained. Forcing sports to paragraph 1
-    // made every edition start the same way, which is what Peter objected to.
-    const last = sectionsOf(brief.paragraphs[brief.paragraphs.length - 1]);
-    if (clusters.some((c) => c.section === 'good') && !last.includes('good')) {
-      nit('The email must CLOSE with the good news. Move it to the final paragraph.');
-    }
-  }
-
   // US news must be contiguous and come before anything foreign.
-  // Sports, USC, the holiday and the good news bookend the email; they are not
-  // part of the news run even when they happen to cite a US story too.
-  const NOT_NEWS = new Set(['sports', 'usc', 'jewish', 'good']);
+  // Sports, USC and the holiday bookend the email; they are not part of the
+  // news run even when they happen to cite a US story too.
+  const NOT_NEWS = new Set(['sports', 'usc', 'jewish']);
   const newsSections = brief.paragraphs.map((p) => {
     const secs = sectionsOf(p).filter((s): s is NonNullable<typeof s> => Boolean(s));
     if (secs.some((s) => NOT_NEWS.has(s))) return 'other';
@@ -517,7 +504,6 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     // so demanding it every day either forces a repeat or burns retries on a
     // brief that is otherwise fine.
     ['sports', 'sports', 'normally near the end'],
-    ['good', 'good-news', 'Rose gets one every day — give it the closing paragraph'],
     ['jewish', 'Jewish holiday', 'one or two sentences on the next holiday, near the end'],
   ] as const) {
     const available = clusters.some((c) => c.section === section);
