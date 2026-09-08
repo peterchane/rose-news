@@ -275,11 +275,12 @@ const DISTRESSING = new RegExp(
     /\brecall\w*\b.{0,60}\b(coli|salmonella|listeria|contaminat|illness|outbreak|bacteria|pathogen|risk (level|category)|class (1|i|one) risk)\b/,
     /\b(food|produce|meat|beef|poultry|chicken|frozen|dairy|cheese|lettuce|spinach|onion|berr(y|ies)|blueberr\w+|salad|infant formula) recall\w*/,
     /\b(food safety|health alert|foodborne)\b/,
-    /\b(mental health crisis|self-harm|eating disorder|addiction|addicted)\b/,
-
-    // Drugs. Peter: "nothing about drugs and disease".
-    /\b(drugs?|narcotics?|opioids?|heroin|cocaine|fentanyl|meth(amphetamine)?|opium|ecstasy|ketamine|vaping|vape)\b/,
-    /\b(cartel|drug bust|drug ring|dealer|possession charge|drug test)\b/,
+    // Self-harm stays absolute, unlike the rest of mental health below.
+    /\b(self-harm|suicid\w*|eating disorder)\b/,
+    /\b(cartel|drug bust|drug ring|possession charge)\b/,
+    // Drug crime is crime, not a health story, and stays blocked outright.
+    /\b(seiz\w+|smuggl\w+|traffick\w+|raid\w*)\b.{0,40}\b(cocaine|heroin|fentanyl|meth|opioids?|narcotics?|drugs?|pills?)\b/,
+    /\b(cocaine|heroin|fentanyl|meth|opioids?|narcotics?)\b.{0,40}\b(seiz\w+|smuggl\w+|bust|raid|arrests?)\b/,
     /\b(plane|helicopter|bus|train|ferry) (crash|crashes|crashed|capsiz)\w*/,
 
     // A lawsuit being FILED decides nothing — it's a press release with a
@@ -338,6 +339,39 @@ const NAMED_FIRE = /\b[A-Z][a-zA-Z]+ Fire\b/;
  * about being bitten by a rattlesnake.
  */
 const VENOM = /\b(venom\w*|antivenom|snakebite|snake bite|rattlesnake|bitten by|sting(s|ing)? (victim|death))\b/i;
+
+/**
+ * Drugs and mental health, allowed ONLY when the story is genuinely mainstream.
+ *
+ * Peter: "no drugs no mental health unless its in the mainstream news." So this
+ * is not an absolute block like self-harm or school violence — it is gated on
+ * corroboration in lib/select.ts, the same way war is. A single outlet's piece
+ * on a weight-loss drug never reaches her; a story every major desk is running
+ * can.
+ *
+ * Brand names matter: "Ozempic's mental health link" cleared a filter that
+ * only knew the word "drug", and became a subject line.
+ */
+const DRUGS_OR_MENTAL_HEALTH = new RegExp(
+  [
+    /\b(drugs?|narcotics?|opioids?|heroin|cocaine|fentanyl|meth(amphetamine)?|opium|ecstasy|ketamine|vaping|vape|edibles?|cannabis|marijuana|psychedelics?)\b/,
+    /\b(ozempic|wegovy|zepbound|mounjaro|adderall|xanax|oxycontin|percocet|ambien|prozac|zoloft|lexapro|ritalin|semaglutide)\b/,
+    /\b(mental health|depression|depressive|anxiety|bipolar|schizophreni\w*|ptsd|panic attacks?|therapy|therapist|psychiatric|antidepressant\w*)\b/,
+    /\b(addiction|addicted|rehab|overdos\w*|withdrawal symptoms?|sober(iety)?)\b/,
+    /\b(dealer|drug test|prescription (drug|pill)s?|pill mill)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+/**
+ * True when a story is about drugs or mental health, and therefore only
+ * eligible if the wider press is carrying it too.
+ */
+export function isDrugOrMentalHealth(title: string): boolean {
+  return DRUGS_OR_MENTAL_HEALTH.test(title);
+}
 /** Ordinary English that happens to end in the word Fire. */
 const NOT_A_FIRE = /\b(under|open|opened|opening|cease|ceased|on|of|friendly|hold|held|return|returned|drew|draw|catch|caught|set) Fire\b/i;
 

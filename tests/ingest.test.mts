@@ -293,8 +293,6 @@ test('drops disease and grim medical news', () => {
     'Measles outbreak spreads across three states',
     'New study links diet to higher cancer risk',
     'Hospital reports surge in flu hospitalizations',
-    'Teen mental health crisis deepens, report finds',
-    'Opioid addiction rates climb in rural counties',
     'Spinach recalled over contamination fears',
   ]) {
     assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
@@ -312,14 +310,29 @@ test('keeps medical progress', () => {
   }
 });
 
-test('drops drug news', () => {
+test('drops drug crime and drug deaths outright', () => {
+  // Drug CRIME is crime. Only the health-and-policy framing is gated on
+  // mainstream coverage (see the select tests); a seizure at the border is not.
   for (const t of [
     'Police seize $2m of cocaine at the border',
     'Fentanyl deaths prompt new state rules',
-    'Teen vaping rates climb again',
     'Cartel leader extradited to the US',
   ]) {
     assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
+  }
+});
+
+test('drug and mental-health topics reach selection, to be gated there', async () => {
+  const { isDrugOrMentalHealth } = await import('../lib/ingest');
+  // Peter: "unless its in the mainstream news." That test needs a source
+  // count, which only exists after clustering, so these are not blocked here.
+  for (const t of [
+    'Teen vaping rates climb again',
+    'Teen mental health crisis deepens, report finds',
+    'Opioid addiction rates climb in rural counties',
+  ]) {
+    assert.ok(isReportableNews(t, 'https://example.com/news/x'), `should survive ingest: ${t}`);
+    assert.ok(isDrugOrMentalHealth(t), `and be gated: ${t}`);
   }
 });
 

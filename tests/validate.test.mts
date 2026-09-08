@@ -391,3 +391,41 @@ test('venom and bite stories are filtered, positive framing or not', async () =>
     assert.ok(isDistressing(t), `should be filtered: ${t}`);
   }
 });
+
+test('drugs and mental health are out unless the whole press is on it', async () => {
+  const { isMainstreamEnough, MAINSTREAM_SOURCES } = await import('../lib/select');
+  // Peter: "no drugs no mental health unless its in the mainstream news."
+  // "Ozempic's mental health link" became a subject line because the filter
+  // only knew the word "drug", not the brand names.
+  for (const t of [
+    "Ozempic's mental health link raises questions, study finds",
+    'Weight-loss drug shows unexpected side effects',
+    'Teen vaping rates fall to a record low',
+    'New study links anxiety to screen time',
+  ]) {
+    assert.ok(!isMainstreamEnough(t, 1), `one outlet is not mainstream: ${t}`);
+    assert.ok(isMainstreamEnough(t, MAINSTREAM_SOURCES), `every desk running it is: ${t}`);
+  }
+});
+
+test('ordinary news is not gated on source count', async () => {
+  const { isMainstreamEnough } = await import('../lib/select');
+  for (const t of [
+    'Senate passes spending bill after long debate',
+    'USC beats Michigan in the season opener',
+    'Scientists find a giant dinosaur in Brazil',
+  ]) {
+    assert.ok(isMainstreamEnough(t, 1), `should not be gated: ${t}`);
+  }
+});
+
+test('self-harm stays blocked outright, mainstream or not', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // Unlike drugs and mental health, this is never a question of coverage.
+  for (const t of [
+    'Self-harm rates among teenagers rise sharply',
+    'Eating disorder cases climb in new report',
+  ]) {
+    assert.ok(isDistressing(t), `must be blocked at ingest: ${t}`);
+  }
+});

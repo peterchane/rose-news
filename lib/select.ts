@@ -1,4 +1,4 @@
-import type { Article } from './ingest';
+import { isDrugOrMentalHealth, type Article } from './ingest';
 import { SECTION_ORDER, type Section } from './feeds';
 
 /**
@@ -179,6 +179,19 @@ function warPenalty(title: string, sources: number): number {
 }
 
 /**
+ * How many separate outlets make a story "mainstream news".
+ *
+ * Peter: "no drugs no mental health unless its in the mainstream news." Same
+ * bar war already has to clear, and the same reasoning: the subject is only
+ * worth her time when the whole press is on it.
+ */
+export const MAINSTREAM_SOURCES = 3;
+
+export function isMainstreamEnough(title: string, sources: number): boolean {
+  return !isDrugOrMentalHealth(title) || sources >= MAINSTREAM_SOURCES;
+}
+
+/**
  * Trivia: real stories about unimportant things.
  *
  * These clear every content filter — nothing about them is distressing — and
@@ -334,11 +347,18 @@ export function selectClusters(
     };
   });
 
+  // Drugs and mental health are dropped outright unless the wider press is
+  // carrying the story. A demotion isn't enough: on a quiet day a demoted
+  // story still climbs into a half-empty section.
+  const mainstreamOnly = scored.filter((c) =>
+    isMainstreamEnough(c.title, Math.max(1, new Set(c.coverage.map((x) => x.source)).size)),
+  );
+
   // Sports is only worth a slot when it's about a team Rose follows. Without
   // this the quota gets filled with whatever was left — a Jets practice injury,
   // a team she has no stake in — purely because the section had room.
   const anyTeams = Boolean(teamPattern || notableOnlyPattern);
-  const relevant = scored.filter((c) => {
+  const relevant = mainstreamOnly.filter((c) => {
     if (c.section !== 'sports' || !anyTeams) return true;
     const hay = `${c.title} ${c.blurb}`;
     return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));

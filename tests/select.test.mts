@@ -346,7 +346,7 @@ test('niche-outlet tech is demoted, mainstream single-outlet tech is not', () =>
   const clusters = selectClusters(
     [
       article({ title: 'Obscure firmware flaw found in server controllers', section: 'tech', source: 'Ars Technica', weight: 0.6 }),
-      article({ title: 'Judge rules Meta must fund mental health programs', section: 'tech', source: 'The New York Times', weight: 1.0 }),
+      article({ title: 'Judge rules Meta must fund privacy compliance programs', section: 'tech', source: 'The New York Times', weight: 1.0 }),
     ],
     { ...QUOTAS, tech: 2 },
   );
