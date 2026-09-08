@@ -377,3 +377,17 @@ test('citing the USC story satisfies the rule', () => {
   const b = { ...ok(), paragraphs: [para(9, 10), para(1, 2), para(3, 4), para(5, 6), para(11, 7)] };
   assert.ok(!validateBrief(b, [...CLUSTERS, big]).some((p) => /significant USC/.test(p)));
 });
+
+test('venom and bite stories are filtered, positive framing or not', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // "Scientists discover a powerful new antivenom" cleared the filter because
+  // the word "discover" tripped the positive-medical exemption, then reached
+  // Rose as the SUBJECT LINE of an email that never mentioned it.
+  for (const t of [
+    'Scientists discover a powerful new antivenom hidden in rattlesnake blood',
+    'A powerful new antivenom breakthrough is announced',
+    'Hiker bitten by a rattlesnake on a popular trail',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});

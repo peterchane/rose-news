@@ -40,9 +40,18 @@ function schemaError(): Error {
 
 const wrap = (object: Brief) => ({ object, usage: { inputTokens: 1, outputTokens: 1 } });
 
+/**
+ * The subject is always written from the finished body now, so every test has
+ * to supply this. One edition's subject led with "Rattlesnake antivenom
+ * breakthrough" — a candidate the draft never wrote about — because the
+ * drafting call chose the subject while looking at the whole candidate list.
+ */
+const SUBJECT_FROM_BODY = 'A subject drawn from the body';
+const subjectStub = async () => SUBJECT_FROM_BODY;
+
 test('the good fixture is actually valid (guards the other cases)', async () => {
-  const out = await writeBrief(clusters, null, async () => wrap(good));
-  assert.equal(out.subject, good.subject);
+  const out = await writeBrief(clusters, null, async () => wrap(good), subjectStub);
+  assert.equal(out.subject, SUBJECT_FROM_BODY);
 });
 
 test('a thrown schema error is retried, not fatal', async () => {
@@ -52,9 +61,9 @@ test('a thrown schema error is retried, not fatal', async () => {
     if (calls === 1) throw schemaError();
     return wrap(good);
   };
-  const out = await writeBrief(clusters, null, draft);
+  const out = await writeBrief(clusters, null, draft, subjectStub);
   assert.equal(calls, 2, 'retried after the throw');
-  assert.equal(out.subject, good.subject);
+  assert.equal(out.subject, SUBJECT_FROM_BODY);
 });
 
 test('survives two consecutive throws and succeeds on the third attempt', async () => {
@@ -64,9 +73,9 @@ test('survives two consecutive throws and succeeds on the third attempt', async 
     if (calls < 3) throw schemaError();
     return wrap(good);
   };
-  const out = await writeBrief(clusters, null, draft);
+  const out = await writeBrief(clusters, null, draft, subjectStub);
   assert.equal(calls, 3);
-  assert.equal(out.subject, good.subject);
+  assert.equal(out.subject, SUBJECT_FROM_BODY);
 });
 
 test('gives up after three failures rather than sending something broken', async () => {
@@ -88,8 +97,8 @@ test('a validation failure is fed back to the next attempt', async () => {
     // First draft is too short — a validateBrief failure, not a schema throw.
     return wrap(calls === 1 ? { ...good, paragraphs: [para(1, 2), para(3, 4)] } : good);
   };
-  const out = await writeBrief(clusters, null, draft);
-  assert.equal(out.subject, good.subject);
+  const out = await writeBrief(clusters, null, draft, subjectStub);
+  assert.equal(out.subject, SUBJECT_FROM_BODY);
   assert.match(prompts[1], /rejected for these reasons/);
   assert.match(prompts[1], /5-9 paragraphs/);
 });
@@ -103,7 +112,7 @@ test('an unparseable response tells the next attempt what shape to return', asyn
     if (calls === 1) throw schemaError();
     return wrap(good);
   };
-  await writeBrief(clusters, null, draft);
+  await writeBrief(clusters, null, draft, subjectStub);
   assert.match(prompts[1], /could not be parsed/);
   assert.match(prompts[1], /paragraphs/);
 });
@@ -154,13 +163,15 @@ test('if the subject call also fails, headlines are used instead', async () => {
   assert.ok(out.subject.includes('Story'), 'falls back to top headlines');
 });
 
-test('an empty-string subject is also replaced', async () => {
+test("the draft's own subject is ignored, even when it supplies one", async () => {
+  // This is the bug: the draft named a story it never wrote about. The subject
+  // can now only describe what is actually in the email.
   const out = await writeBrief(
     clusters, null,
-    async () => wrap({ ...good, subject: '   ' }),
-    async () => 'Replacement subject',
+    async () => wrap({ ...good, subject: 'Rattlesnake antivenom breakthrough' }),
+    subjectStub,
   );
-  assert.equal(out.subject, 'Replacement subject');
+  assert.equal(out.subject, SUBJECT_FROM_BODY, "the draft's subject must not survive");
 });
 
 test('synthesizeSubject skips explainer headlines that read badly as subjects', () => {
@@ -248,6 +259,15 @@ test('problems that are merely untidy still ship', () => {
   ));
   // The regression that cost an edition: splitting pushed the count over nine.
   assert.ok(!sev(Array.from({ length: 10 }, (_, i) => para((i % 8) + 1, ((i + 3) % 8) + 1)), /paragraphs, got 10/));
+});
+
+test('the subject is written from the paragraphs it was given', async () => {
+  const seen: string[][] = [];
+  await writeBrief(clusters, null, async () => wrap(good), async (paras) => {
+    seen.push(paras);
+    return 'x';
+  });
+  assert.deepEqual(seen[0], good.paragraphs, 'the finished body is what names the email');
 });
 
 test('a final draft with only cosmetic issues is sent, not discarded', async () => {

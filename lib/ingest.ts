@@ -331,6 +331,13 @@ const DRUG_AS_MEDICINE = /\b(drug|therapy|treatment)\s+(approv|trial|works|shows
  * in the case-insensitive block above.
  */
 const NAMED_FIRE = /\b[A-Z][a-zA-Z]+ Fire\b/;
+
+/**
+ * Bites, stings and venom. Medical either way, and never exempted by the
+ * positive-framing rule below — "a powerful new antivenom" is still a story
+ * about being bitten by a rattlesnake.
+ */
+const VENOM = /\b(venom\w*|antivenom|snakebite|snake bite|rattlesnake|bitten by|sting(s|ing)? (victim|death))\b/i;
 /** Ordinary English that happens to end in the word Fire. */
 const NOT_A_FIRE = /\b(under|open|opened|opening|cease|ceased|on|of|friendly|hold|held|return|returned|drew|draw|catch|caught|set) Fire\b/i;
 
@@ -339,8 +346,11 @@ export function isFireStory(title: string): boolean {
 }
 
 export function isDistressing(title: string): boolean {
+  // Venom and fire are checked before the positive-framing exemption, because
+  // "breakthrough" and "discover" were letting them straight through.
+  if (VENOM.test(title) || isFireStory(title)) return true;
   if (MEDICAL_GOOD_NEWS.test(title) || DRUG_AS_MEDICINE.test(title)) return false;
-  return DISTRESSING.test(title) || isFireStory(title);
+  return DISTRESSING.test(title);
 }
 
 export function isReportableNews(

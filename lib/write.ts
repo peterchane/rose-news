@@ -642,14 +642,14 @@ export async function writeBrief(
       // Repair formatting before judging it.
       object.paragraphs = dropUncited(splitPivots(object.paragraphs));
 
-      let subject = object.subject?.trim() ?? '';
+      // The subject is ALWAYS written from the finished paragraphs, never taken
+      // from the drafting call. That call sees the whole candidate list, so its
+      // subject could name a story it never wrote about — one edition led with
+      // "Rattlesnake antivenom breakthrough" that appeared nowhere in the body.
+      // Deriving it from the text makes that impossible rather than unlikely.
+      const subject = (await subjectFn(object.paragraphs)) ?? '';
       if (!subject) {
-        subject = (await subjectFn(object.paragraphs)) ?? '';
-        console.warn(
-          subject
-            ? '[write] model omitted the subject; wrote one from the finished body'
-            : '[write] subject call failed too; falling back to top headlines',
-        );
+        console.warn('[write] subject call failed; falling back to top headlines');
       }
       const candidate: Brief = {
         ...object,
