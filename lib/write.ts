@@ -181,8 +181,28 @@ export function dropUncited(paragraphs: string[], min = 5): string[] {
   // A non-global copy on purpose: `.test` on the shared global CITATION_RE
   // advances its lastIndex and silently breaks the next caller's scan.
   const cited = new RegExp(CITATION_RE.source);
-  const keep = paragraphs.filter((p) => cited.test(p));
+
+  // Removing a paragraph can orphan the one after it. An edition reached Rose
+  // opening a paragraph with "her lawyers argue..." because the sentence that
+  // introduced the woman lived in the paragraph this dropped. A continuation
+  // announces itself by starting lower-case, so it goes with its parent.
+  const drop = new Set<number>();
+  paragraphs.forEach((p, i) => {
+    if (cited.test(p)) return;
+    drop.add(i);
+    for (let j = i + 1; j < paragraphs.length && continuesPrevious(paragraphs[j]); j++) {
+      drop.add(j);
+    }
+  });
+
+  const keep = paragraphs.filter((_, i) => !drop.has(i));
   return keep.length >= min ? keep : paragraphs;
+}
+
+/** A paragraph that reads as the tail of the one before it. */
+export function continuesPrevious(paragraph: string): boolean {
+  const first = paragraph.trim().charAt(0);
+  return first !== '' && first === first.toLowerCase() && first !== first.toUpperCase();
 }
 
 /**
@@ -430,6 +450,12 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     }
 
     const words = para.trim().split(/\s+/).length;
+    if (continuesPrevious(para)) {
+      nit(
+        `Paragraph ${n} starts mid-sentence ("${para.trim().slice(0, 40)}..."). ` +
+          'Every paragraph must stand on its own and start a new sentence.',
+      );
+    }
     if (words < 25) nit(`Paragraph ${n} is too short (${words} words); aim for 40-80.`);
     if (words > 110) nit(`Paragraph ${n} is too long (${words} words); aim for 40-80. Split it at the topic change.`);
 

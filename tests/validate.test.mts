@@ -429,3 +429,35 @@ test('self-harm stays blocked outright, mainstream or not', async () => {
     assert.ok(isDistressing(t), `must be blocked at ingest: ${t}`);
   }
 });
+
+test('dropping an uncited paragraph takes its continuation with it', async () => {
+  const { dropUncited } = await import('../lib/write');
+  // An edition reached Rose opening "her lawyers argue the label was applied
+  // without due process" — the sentence naming the woman was in the paragraph
+  // this dropped.
+  const intro = 'A Venezuelan woman was designated an enemy alien this week by the new court.';
+  const tail = 'her lawyers argue the label was applied without the usual due process protections.';
+  const out = dropUncited([para(1, 2), para(3, 4), para(5, 6), para(7, 8), para(9, 10), intro, tail]);
+  assert.ok(!out.includes(intro), 'the uncited paragraph goes');
+  assert.ok(!out.includes(tail), 'and so does the fragment it left behind');
+  assert.equal(out.length, 5);
+});
+
+test('a self-contained paragraph after a dropped one is kept', async () => {
+  const { dropUncited } = await import('../lib/write');
+  const uncited = 'No citations live in this paragraph at all.';
+  const standalone = para(1, 2);
+  const out = dropUncited([para(3, 4), para(5, 6), para(7, 8), para(9, 10), uncited, standalone]);
+  assert.ok(!out.includes(uncited));
+  assert.ok(out.includes(standalone), 'only continuations are collateral');
+});
+
+test('a paragraph starting mid-sentence is flagged, never fatal', async () => {
+  const { isFatal } = await import('../lib/write');
+  const fragment = 'her lawyers argue the label was applied [without due process](#1) this week today.';
+  const b = { ...ok(), paragraphs: [para(9, 10), fragment, para(3, 4), para(5, 6), para(7, 8)] };
+  const problems = validateBrief(b, CLUSTERS);
+  const hit = problems.find((p) => /starts mid-sentence/.test(p));
+  assert.ok(hit, problems.join(' | '));
+  assert.ok(!isFatal(hit!), 'a formatting slip must never block the send');
+});
