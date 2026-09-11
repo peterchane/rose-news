@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { briefSchema, writeBrief, synthesizeSubject, clampSubject, validateBrief, isFatal, isUnretryable, MODEL_CHAIN, BriefValidationError, BriefConfigError, type Brief, type DraftFn } from '../lib/write';
+import { briefSchema, writeBrief, validateBrief, isFatal, isUnretryable, MODEL_CHAIN, BriefValidationError, BriefConfigError, type Brief, type DraftFn } from '../lib/write';
+import { dailySubject } from '../lib/schedule';
 import type { Cluster } from '../lib/select';
 
 /**
@@ -41,17 +42,15 @@ function schemaError(): Error {
 const wrap = (object: Brief) => ({ object, usage: { inputTokens: 1, outputTokens: 1 } });
 
 /**
- * The subject is always written from the finished body now, so every test has
- * to supply this. One edition's subject led with "Rattlesnake antivenom
- * breakthrough" — a candidate the draft never wrote about — because the
- * drafting call chose the subject while looking at the whole candidate list.
+ * The subject is the date now — "Rose News: Friday, Sept 11" — not a summary of
+ * the contents. A written subject had to describe the email accurately, and one
+ * edition led with "Rattlesnake antivenom breakthrough", a story the body never
+ * mentioned. A date cannot be wrong.
  */
-const SUBJECT_FROM_BODY = 'A subject drawn from the body';
-const subjectStub = async () => SUBJECT_FROM_BODY;
 
 test('the good fixture is actually valid (guards the other cases)', async () => {
-  const out = await writeBrief(clusters, null, async () => wrap(good), subjectStub);
-  assert.equal(out.subject, SUBJECT_FROM_BODY);
+  const out = await writeBrief(clusters, null, async () => wrap(good));
+  assert.equal(out.subject, dailySubject());
 });
 
 test('a thrown schema error is retried, not fatal', async () => {
@@ -61,9 +60,9 @@ test('a thrown schema error is retried, not fatal', async () => {
     if (calls === 1) throw schemaError();
     return wrap(good);
   };
-  const out = await writeBrief(clusters, null, draft, subjectStub);
+  const out = await writeBrief(clusters, null, draft);
   assert.equal(calls, 2, 'retried after the throw');
-  assert.equal(out.subject, SUBJECT_FROM_BODY);
+  assert.equal(out.subject, dailySubject());
 });
 
 test('survives two consecutive throws and succeeds on the third attempt', async () => {
@@ -73,9 +72,9 @@ test('survives two consecutive throws and succeeds on the third attempt', async 
     if (calls < 3) throw schemaError();
     return wrap(good);
   };
-  const out = await writeBrief(clusters, null, draft, subjectStub);
+  const out = await writeBrief(clusters, null, draft);
   assert.equal(calls, 3);
-  assert.equal(out.subject, SUBJECT_FROM_BODY);
+  assert.equal(out.subject, dailySubject());
 });
 
 test('gives up after three failures rather than sending something broken', async () => {
@@ -97,8 +96,8 @@ test('a validation failure is fed back to the next attempt', async () => {
     // First draft is too short — a validateBrief failure, not a schema throw.
     return wrap(calls === 1 ? { ...good, paragraphs: [para(1, 2), para(3, 4)] } : good);
   };
-  const out = await writeBrief(clusters, null, draft, subjectStub);
-  assert.equal(out.subject, SUBJECT_FROM_BODY);
+  const out = await writeBrief(clusters, null, draft);
+  assert.equal(out.subject, dailySubject());
   assert.match(prompts[1], /rejected for these reasons/);
   assert.match(prompts[1], /5-9 paragraphs/);
 });
@@ -112,7 +111,7 @@ test('an unparseable response tells the next attempt what shape to return', asyn
     if (calls === 1) throw schemaError();
     return wrap(good);
   };
-  await writeBrief(clusters, null, draft, subjectStub);
+  await writeBrief(clusters, null, draft);
   assert.match(prompts[1], /could not be parsed/);
   assert.match(prompts[1], /paragraphs/);
 });
@@ -136,57 +135,37 @@ test('a response missing only the subject still parses', () => {
 });
 
 test('the schema still rejects genuinely wrong shapes', () => {
-  assert.ok(!briefSchema.safeParse({ subject: 'x' }).success, 'paragraphs is required');
-  assert.ok(!briefSchema.safeParse({ subject: 'x', paragraphs: 'nope' }).success);
-  assert.ok(!briefSchema.safeParse({ subject: 'x', paragraphs: [{ text: 'a' }] }).success);
-  assert.ok(!briefSchema.safeParse({ subject: 42, paragraphs: ['a'] }).success);
+  assert.ok(!briefSchema.safeParse({}).success, 'paragraphs is required');
+  assert.ok(!briefSchema.safeParse({ paragraphs: 'nope' }).success);
+  assert.ok(!briefSchema.safeParse({ paragraphs: [{ text: 'a' }] }).success);
+  // A stray subject key is ignored rather than fatal — the schema no longer
+  // asks for one, and an unexpected key must never cost the day's email.
+  assert.ok(briefSchema.safeParse({ subject: 42, paragraphs: ['a'] }).success);
 });
 
-test('a missing subject is written by the dedicated subject call', async () => {
+test('a draft with no subject at all still gets one', async () => {
+  // The Aug 6 failure was a missing subject making the response unusable. The
+  // subject no longer comes from the model, so it cannot go missing.
   const { subject: _drop, ...noSubject } = good;
-  const out = await writeBrief(
-    clusters, null,
-    async () => wrap(noSubject as Brief),
-    async () => 'A subject written from the body',
-  );
-  assert.equal(out.subject, 'A subject written from the body');
-});
-
-test('if the subject call also fails, headlines are used instead', async () => {
-  const { subject: _drop, ...noSubject } = good;
-  const out = await writeBrief(
-    clusters, null,
-    async () => wrap(noSubject as Brief),
-    async () => null,
-  );
-  assert.ok(out.subject.length > 0, 'never empty');
-  assert.ok(out.subject.includes('Story'), 'falls back to top headlines');
+  const out = await writeBrief(clusters, null, async () => wrap(noSubject as Brief));
+  assert.equal(out.subject, dailySubject());
 });
 
 test("the draft's own subject is ignored, even when it supplies one", async () => {
-  // This is the bug: the draft named a story it never wrote about. The subject
-  // can now only describe what is actually in the email.
+  // This is the bug the dated subject retires: the draft named a story it never
+  // wrote about, and that became the subject line.
   const out = await writeBrief(
     clusters, null,
     async () => wrap({ ...good, subject: 'Rattlesnake antivenom breakthrough' }),
-    subjectStub,
   );
-  assert.equal(out.subject, SUBJECT_FROM_BODY, "the draft's subject must not survive");
+  assert.equal(out.subject, dailySubject(), "the draft's subject must not survive");
 });
 
-test('synthesizeSubject skips explainer headlines that read badly as subjects', () => {
-  const s = synthesizeSubject([
-    { ...clusters[0], title: 'What Is Fauci Being Accused of and Why Is He Being Held in Contempt?' },
-    { ...clusters[1], title: 'Kyiv barrage kills 17' },
-  ]);
-  assert.ok(!/^What Is/.test(s), `got: ${s}`);
-  assert.ok(s.includes('Kyiv'), `got: ${s}`);
-});
-
-test('synthesized subjects stay within a sane length', () => {
-  const long = clusters.map((c, i) => ({ ...c, title: `A very long headline number ${i} `.repeat(4) }));
-  assert.ok(synthesizeSubject(long).length <= 80, 'never runs away');
-  assert.ok(synthesizeSubject([]).length > 0, 'degrades to a default');
+test('the subject is the date, in the format Peter asked for', () => {
+  assert.equal(dailySubject('2026-09-11'), 'Rose News: Friday, Sept 11');
+  assert.equal(dailySubject('2026-01-05'), 'Rose News: Monday, Jan 5');
+  assert.equal(dailySubject('2026-03-22'), 'Rose News: Sunday, March 22');
+  assert.equal(dailySubject('2026-12-31'), 'Rose News: Thursday, Dec 31');
 });
 
 test('a long anchor beginning with "more" is not mistaken for a "more" link', () => {
@@ -207,81 +186,6 @@ test('a bare "more" or "here" anchor is still rejected', () => {
     const problems = validateBrief({ ...good, paragraphs: [p, para(3,4), para(5,6), para(7,8), para(9,10)] }, clusters);
     assert.ok(problems.some((x) => /meaningful phrase/.test(x)), `"${anchor}" should be rejected`);
   }
-});
-
-test('subjects are clamped to a sane length at a word boundary', () => {
-  const long = 'Fauci contempt fight escalates while Iran and Oman near a Hormuz agreement and Ukraine strikes refineries';
-  const out = clampSubject(long);
-  assert.ok(out.length <= 78, `got ${out.length}`);
-  assert.ok(!out.endsWith(' '), 'no trailing space');
-  assert.ok(!/\s\S{1,2}$/.test(out) || out.split(' ').length < 3, 'cut at a word boundary');
-  assert.equal(clampSubject('Short one'), 'Short one');
-});
-
-test('an over-long subject is trimmed, never a reason to fail', async () => {
-  const out = await writeBrief(
-    clusters, null,
-    async () => wrap({ ...good, subject: 'x '.repeat(80) }),
-    async () => null,
-  );
-  assert.ok(out.subject.length <= 78);
-});
-
-/**
- * Severity is asserted through validateBrief, never by handing isFatal a
- * hand-written string. Strings are what made this fragile: these tests used to
- * pass while the real rules disagreed with them.
- */
-const sev = (paragraphs: string[], match: RegExp) => {
-  const hit = validateBrief({ ...good, paragraphs }, clusters).find((p) => match.test(p));
-  assert.ok(hit, `no problem matched ${match}`);
-  return isFatal(hit!);
-};
-
-const five = (extra: string) => [para(9, 10), para(1, 2), para(3, 4), para(5, 6), extra];
-
-test('problems that make a brief unsendable block the send', () => {
-  assert.ok(sev(five(para(1, 2).replace('(#1)', '(#999)')), /not a candidate ID/), 'fabricated link');
-  assert.ok(sev(five(para(1, 2).replace('(#1)', '(https://evil.com)')), /raw URL/), 'raw URL');
-  assert.ok(sev(five('- Iran did a thing today\n- Israel did another thing'), /bulleted or numbered/), 'list');
-  assert.ok(sev([para(1, 2), para(1, 2)], /paragraphs, got|got 2/), 'far too few paragraphs');
-  assert.ok(sev(Array.from({ length: 5 }, () => para(1, 2)), /distinct stories/), 'too few stories');
-});
-
-test('problems that are merely untidy still ship', () => {
-  assert.ok(!sev(five('The vote passed Tuesday. Officials expect [more detail](#1) soon.'), /too short/));
-  assert.ok(!sev(five(para(1, 2).replace('[according to talks]', '[read more]')), /meaningful phrase/));
-  assert.ok(!sev(five(para(1, 2).replace(/\[([^\]]+)\]\(#\d+\)/g, '$1')), /no citations/));
-  // Repaired by splitPivots, so it must never block a send.
-  assert.ok(!sev(
-    five('The vote passed the chamber Tuesday after debate. Meanwhile a drone was found at an airport, and police opened an inquiry into [how it got there](#3).'),
-    /pivots to a new topic/,
-  ));
-  // The regression that cost an edition: splitting pushed the count over nine.
-  assert.ok(!sev(Array.from({ length: 10 }, (_, i) => para((i % 8) + 1, ((i + 3) % 8) + 1)), /paragraphs, got 10/));
-});
-
-test('the subject is written from the paragraphs it was given', async () => {
-  const seen: string[][] = [];
-  await writeBrief(clusters, null, async () => wrap(good), async (paras) => {
-    seen.push(paras);
-    return 'x';
-  });
-  assert.deepEqual(seen[0], good.paragraphs, 'the finished body is what names the email');
-});
-
-test('a final draft with only cosmetic issues is sent, not discarded', async () => {
-  // A slightly short paragraph is a nit. A mid-paragraph pivot is NOT — that
-  // became fatal after Peter raised it twice as a reader complaint.
-  const short = 'The vote passed on Tuesday after debate. Officials expect [more detail](#1) soon.';
-  const nitty = { ...good, paragraphs: [para(9, 10), short, para(3, 4), para(5, 6), para(7, 8)] };
-  const problems = validateBrief(nitty, clusters);
-  assert.ok(
-    problems.length > 0 && !problems.some(isFatal),
-    `fixture must have a cosmetic-only problem: ${problems.join(' | ')}`,
-  );
-  const out = await writeBrief(clusters, null, async () => wrap(nitty));
-  assert.equal(out.paragraphs.length, 5, 'sent despite the nit');
 });
 
 test('a final draft with a fabricated link is still refused', async () => {

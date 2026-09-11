@@ -1,8 +1,9 @@
-import { generateObject, generateText } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { SECTION_LABELS, SECTION_ORDER } from './feeds';
 import type { Cluster } from './select';
 import { isSchoolViolence } from './ingest';
+import { dailySubject } from './schedule';
 
 /**
  * Models are tried in order until one works. Gateway access changes without
@@ -22,7 +23,7 @@ export const MODEL_CHAIN: string[] = [
   'google/gemini-2.5-flash',
 ].filter((m): m is string => Boolean(m));
 
-/** The first entry, for logging and for the subject-line call. */
+/** The first entry, used for logging. */
 export const MODEL = MODEL_CHAIN[0];
 
 /**
@@ -32,15 +33,6 @@ export const MODEL = MODEL_CHAIN[0];
  * data model makes unrepresentable.
  */
 export const briefSchema = z.object({
-  // Optional on purpose. Sonnet reliably omits this field on longer candidate
-  // lists, and a required-but-missing key makes the whole response unparseable
-  // — which lost the Aug 6 brief. Absent subjects are synthesized below instead.
-  subject: z
-    .string()
-    .optional()
-    .describe(
-      'REQUIRED. Email subject line naming the 2-3 biggest stories concretely, under 80 characters. No date prefix, no "Daily Brief".',
-    ),
   // Deliberately loose. Count and shape are enforced by validateBrief, which
   // can hand the model specific feedback and retry. A constraint expressed here
   // instead becomes an unparseable-response error that kills the whole run —
@@ -54,69 +46,8 @@ export const briefSchema = z.object({
 
 type RawBrief = z.infer<typeof briefSchema>;
 
-/** A brief that has been through writeBrief, so the subject is guaranteed. */
+/** A brief that has been through writeBrief, which stamps the dated subject. */
 export type Brief = RawBrief & { subject: string };
-
-/**
- * Sonnet drops the `subject` field on most runs once the system prompt is long,
- * so it's cheaper and far more reliable to ask for it on its own than to keep
- * fighting for it inside the main schema.
- */
-/** Cached per invocation so the chain isn't re-probed for the subject call. */
-let usableModel: string | null = null;
-export function noteUsableModel(model: string) {
-  usableModel = model;
-}
-async function firstUsableModel(): Promise<string> {
-  return usableModel ?? MODEL;
-}
-
-export async function writeSubject(paragraphs: string[]): Promise<string | null> {
-  try {
-    const { text } = await generateText({
-      model: await firstUsableModel(),
-      prompt:
-        `Write the email subject line for this news briefing.\n\n` +
-        `Name the 2-3 biggest stories concretely. Under 80 characters. ` +
-        `No date, no "Daily Brief", no quotes around it. Reply with the subject line only.\n\n` +
-        paragraphs.join('\n\n').replace(/\[([^\]]+)\]\(#\d+\)/g, '$1'),
-      temperature: 0.4,
-      maxOutputTokens: 60,
-    });
-    const line = text.trim().split('\n')[0].replace(/^["']|["']$/g, '').trim();
-    return line.length >= 10 && line.length <= 110 ? line : null;
-  } catch (err) {
-    console.warn('[write] subject call failed:', err instanceof Error ? err.message : err);
-    return null;
-  }
-}
-
-/**
- * Last-resort subject built from the day's top stories, used only if the
- * dedicated subject call also fails. Headlines get truncated, so trim them to
- * something that reads like a subject rather than a cut-off sentence.
- */
-export function synthesizeSubject(clusters: Cluster[]): string {
-  const parts: string[] = [];
-  for (const c of clusters.slice(0, 3)) {
-    // Drop question headlines and subtitles; keep the first clause only.
-    let short = c.title.split(/[:—–|?]/)[0].trim();
-    // Explainer headlines ("What Is X Being Accused Of") make terrible subjects.
-    if (/^(what|why|how|who|when|where)\b/i.test(short)) continue;
-    if (short.length > 46) short = short.slice(0, 46).replace(/\s+\S*$/, '');
-    if (!short) continue;
-    if ([...parts, short].join(', ').length > 72) break;
-    parts.push(short);
-  }
-  return parts.join(', ') || "Today's news";
-}
-
-/** Trim to a clean subject length at a word boundary. */
-export function clampSubject(s: string, max = 78): string {
-  const line = s.trim().replace(/\s+/g, ' ');
-  if (line.length <= max) return line;
-  return line.slice(0, max).replace(/[\s,;:—–-]+\S*$/, '').trim() || line.slice(0, max).trim();
-}
 
 /**
  * Splits a paragraph at a mid-paragraph pivot instead of rejecting the draft.
@@ -293,7 +224,7 @@ PICKING STORIES:
 - Sports means an event, not rankings or fantasy advice.
 - Foreign news only if it's genuinely big. Otherwise leave it out.
 
-OUTPUT: return "subject" (a string, names 2-3 stories, under 80 chars) and "paragraphs" (an array of strings). Both, always.`;
+OUTPUT: return "paragraphs", an array of strings. The subject line is written for you — do not produce one.`;
 
 /**
  * Which kind of story opens the email, rotated by date. Left to its own devices
@@ -339,7 +270,6 @@ export function buildPrompt(
   if (previous) {
     parts.push(
       `\n=== ALREADY SENT${previous.date ? ` (${previous.date})` : ''} ===\n` +
-        `Subject was: ${previous.subject}\n` +
         `Stories she has ALREADY read about:\n${previous.topics.map((t) => `- ${t}`).join('\n')}\n\n` +
         `Rose asked not to be told the same story twice. Do NOT write about any story above again ` +
         `unless something genuinely new happened since — a new vote, a new death toll, a new decision. ` +
@@ -634,13 +564,10 @@ const defaultDraft: DraftFn = async (prompt, temperature) => {
   );
 };
 
-export type SubjectFn = (paragraphs: string[]) => Promise<string | null>;
-
 export async function writeBrief(
   clusters: Cluster[],
   previous: PreviousBrief | null,
   draft: DraftFn = defaultDraft,
-  subjectFn: SubjectFn = writeSubject,
 ): Promise<Brief> {
   const basePrompt = buildPrompt(clusters, previous);
   const ATTEMPTS = 3;
@@ -668,19 +595,10 @@ export async function writeBrief(
       // Repair formatting before judging it.
       object.paragraphs = dropUncited(splitPivots(object.paragraphs));
 
-      // The subject is ALWAYS written from the finished paragraphs, never taken
-      // from the drafting call. That call sees the whole candidate list, so its
-      // subject could name a story it never wrote about — one edition led with
-      // "Rattlesnake antivenom breakthrough" that appeared nowhere in the body.
-      // Deriving it from the text makes that impossible rather than unlikely.
-      const subject = (await subjectFn(object.paragraphs)) ?? '';
-      if (!subject) {
-        console.warn('[write] subject call failed; falling back to top headlines');
-      }
-      const candidate: Brief = {
-        ...object,
-        subject: clampSubject(subject || synthesizeSubject(clusters)),
-      };
+      // The subject is the date, not a description. A written subject had to
+      // summarise the contents accurately, which made it one more thing that
+      // could be wrong — one edition led with a story the body never mentioned.
+      const candidate: Brief = { ...object, subject: dailySubject() };
 
       lastProblems = validateBrief(candidate, clusters);
       if (lastProblems.length === 0) return candidate;
@@ -722,7 +640,7 @@ export async function writeBrief(
       );
       lastProblems = [
         'Your last response could not be parsed. Return valid JSON matching the schema: ' +
-          'a "subject" string and a "paragraphs" array of 5 to 9 plain strings. ' +
+          'a "paragraphs" array of 5 to 9 plain strings. ' +
           'No markdown fences, no nested objects, no extra keys.',
       ];
     }
