@@ -461,3 +461,27 @@ test('a paragraph starting mid-sentence is flagged, never fatal', async () => {
   assert.ok(hit, problems.join(' | '));
   assert.ok(!isFatal(hit!), 'a formatting slip must never block the send');
 });
+
+test('a fragment starting with punctuation is caught too', async () => {
+  const { continuesPrevious } = await import('../lib/write');
+  // Both shapes reached Rose: one opening lower-case, one opening with the
+  // punctuation that ended the sentence its paragraph no longer contains.
+  assert.ok(continuesPrevious('.breaking with decades of American neutrality on the issue.'));
+  assert.ok(continuesPrevious(', which the governor signed on Tuesday afternoon.'));
+  assert.ok(continuesPrevious('her lawyers argue the label was applied without due process.'));
+  assert.ok(continuesPrevious('— and the vote was called shortly after that.'));
+});
+
+test('a legitimate opening is not mistaken for a fragment', async () => {
+  const { continuesPrevious } = await import('../lib/write');
+  for (const p of [
+    'The Senate voted on Tuesday.',
+    '"We are not backing down," the governor said.',
+    '“This changes everything,” one official said.',
+    "'Nobody saw it coming,' she added.",
+    '(Reuters reported the figure first.)',
+    '25 years after the attacks, the memorials were quiet.',
+  ]) {
+    assert.ok(!continuesPrevious(p), `should be a valid opening: ${p}`);
+  }
+});

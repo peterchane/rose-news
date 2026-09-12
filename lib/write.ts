@@ -130,10 +130,23 @@ export function dropUncited(paragraphs: string[], min = 5): string[] {
   return keep.length >= min ? keep : paragraphs;
 }
 
-/** A paragraph that reads as the tail of the one before it. */
+/**
+ * A paragraph that reads as the tail of the one before it.
+ *
+ * Two shapes, both seen in real editions: one opening lower-case ("her lawyers
+ * argue...") and one opening with the punctuation that ended the missing
+ * sentence (".breaking with decades of American neutrality..."). Leading
+ * punctuation is stripped before the letter is judged, so both are caught.
+ */
 export function continuesPrevious(paragraph: string): boolean {
-  const first = paragraph.trim().charAt(0);
-  return first !== '' && first === first.toLowerCase() && first !== first.toUpperCase();
+  const trimmed = paragraph.trim();
+  if (trimmed === '') return false;
+  // An opening quote or bracket is a legitimate way to start a paragraph.
+  if (/^["'“‘(\[]/.test(trimmed)) return false;
+  // Any other leading punctuation is the tail of a sentence that isn't here.
+  if (/^[^\p{L}\p{N}]/u.test(trimmed)) return true;
+  const first = trimmed.charAt(0);
+  return first === first.toLowerCase() && first !== first.toUpperCase();
 }
 
 /**
