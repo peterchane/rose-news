@@ -182,6 +182,18 @@ export const CITATION_RE = /\[([^\]\n]+)\]\(#(\d+)\)/g;
 
 function formatCandidates(clusters: Cluster[]): string {
   const lines: string[] = [];
+
+  // Stated first and stated plainly. Grouped-by-section was all the model ever
+  // saw, so the ranking may as well not have existed.
+  const top = topStories(clusters);
+  if (top.length) {
+    lines.push("## TODAY'S BIGGEST STORIES — you must cover every one of these");
+    for (const c of top) {
+      const outlets = new Set(c.coverage.map((x) => x.source)).size;
+      lines.push(`#${c.id} ${c.title}${outlets > 1 ? ` [${outlets} outlets ran it]` : ''}`);
+    }
+    lines.push('These are the day\'s news. Everything below is what you fill in around them.');
+  }
   for (const section of SECTION_ORDER) {
     const inSection = clusters.filter((c) => c.section === section);
     if (inSection.length === 0) continue;
@@ -345,19 +357,61 @@ export function isUnretryable(message: string): boolean {
  */
 const FATAL = 'FATAL: ';
 
+/**
+ * Worth one more attempt, but never worth losing the day over.
+ *
+ * Between "unsendable" and "a nit we ship anyway" there is a third case: a
+ * brief that is well-formed but has missed the day's actual news. An edition
+ * skipped a Russian warship story four outlets led with and spent its slots on
+ * McConnell returning to the Senate. That deserves a re-roll, not a silent pass
+ * and not a failed send.
+ */
+const RETRY = 'RETRY: ';
+
 export function isFatal(problem: string): boolean {
   return problem.startsWith(FATAL);
 }
 
+export function isWorthRetry(problem: string): boolean {
+  return problem.startsWith(RETRY);
+}
+
+/** How many of the day's stories are treated as unmissable. */
+export const TOP_STORY_COUNT = 3;
+
+/**
+ * The day's biggest stories, by the ranking selection already computed.
+ *
+ * The model only ever saw candidates grouped by section, with nothing to say
+ * which mattered most — so it chose whatever read well. This is the ranking
+ * finally being told to the writer.
+ */
+export function topStories(clusters: Cluster[], count = TOP_STORY_COUNT): Cluster[] {
+  const ranked = [...clusters]
+    .filter((c) => c.section !== 'jewish')
+    .sort((a, b) => b.score - a.score);
+  if (ranked.length === 0) return [];
+
+  // A story only counts as one of the day's biggest if it actually stands out.
+  // On a flat day nothing does, and nothing should be forced.
+  const scores = ranked.map((c) => c.score).sort((a, b) => a - b);
+  const median = scores[Math.floor(scores.length / 2)];
+  return ranked.slice(0, count).filter((c) => c.score > median);
+}
+
 /** The problem text without its severity marker, for prompts and alerts. */
 export function problemText(problem: string): string {
-  return problem.startsWith(FATAL) ? problem.slice(FATAL.length) : problem;
+  if (problem.startsWith(FATAL)) return problem.slice(FATAL.length);
+  if (problem.startsWith(RETRY)) return problem.slice(RETRY.length);
+  return problem;
 }
 
 export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const problems: string[] = [];
   /** Unsendable: fabricated links, raw URLs, list formatting, wrong shape. */
   const fatal = (m: string) => problems.push(FATAL + m);
+  /** Worth another attempt, but shipped as-is if the attempts run out. */
+  const retry = (m: string) => problems.push(RETRY + m);
   /** Worth a retry, never worth losing the day over. */
   const nit = (m: string) => problems.push(m);
 
@@ -496,6 +550,15 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     );
   }
 
+  const missed = topStories(clusters).filter((c) => !allCited.has(c.id));
+  if (missed.length) {
+    retry(
+      `You skipped ${missed.length} of the day's biggest stories: ` +
+        missed.map((c) => `#${c.id} "${c.title.slice(0, 50)}"`).join(', ') +
+        '. Cover every one of them.',
+    );
+  }
+
   // A BIG USC story must be cited; a routine one still must not be forced.
   // Peter: "yes if it's a big story like this one... but not minor ones."
   // The empty-seats story about Lincoln Riley's program sat in the candidate
@@ -622,8 +685,11 @@ export async function writeBrief(
 
       // Every retry is another full model call — the dominant cost and the
       // dominant latency. A draft whose only faults are stylistic is already a
-      // good email, so ship it rather than paying to re-roll for polish.
-      if (!lastProblems.some(isFatal)) {
+      // good email, so ship it rather than paying to re-roll for polish. A
+      // draft that missed the day's news is worth one more roll, but is still
+      // sent if the attempts run out: a middling email beats no email.
+      const worthRetry = lastProblems.some(isWorthRetry) && attempt < ATTEMPTS;
+      if (!lastProblems.some(isFatal) && !worthRetry) {
         console.warn(
           `[write] accepting final draft despite ${lastProblems.length} cosmetic issue(s)`,
         );

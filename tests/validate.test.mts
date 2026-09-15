@@ -485,3 +485,43 @@ test('a legitimate opening is not mistaken for a fragment', async () => {
     assert.ok(!continuesPrevious(p), `should be a valid opening: ${p}`);
   }
 });
+
+test("the day's biggest stories must be covered", async () => {
+  const { topStories, isWorthRetry, isFatal, TOP_STORY_COUNT } = await import('../lib/write');
+  // An edition skipped a Russian warship story four outlets led with and spent
+  // its slots on McConnell returning to the Senate. The ranking existed; the
+  // model was never told about it.
+  const ranked = CLUSTERS.map((c, i) => ({ ...c, score: 100 - i }));
+  const top = topStories(ranked);
+  assert.equal(top.length, TOP_STORY_COUNT);
+  assert.deepEqual(top.map((c) => c.id), [1, 2, 3], 'highest scoring first');
+
+  // A brief citing none of them.
+  const b = { ...ok(), paragraphs: [para(9, 10), para(4, 5), para(6, 7), para(8, 4), para(5, 6)] };
+  const problems = validateBrief(b, ranked);
+  const hit = problems.find((p) => /biggest stories/.test(p));
+  assert.ok(hit, problems.join(' | '));
+  assert.ok(isWorthRetry(hit!), 'worth another attempt');
+  assert.ok(!isFatal(hit!), 'but never worth losing the email');
+});
+
+test('covering the big stories clears the rule', async () => {
+  const ranked = CLUSTERS.map((c, i) => ({ ...c, score: 100 - i }));
+  const b = { ...ok(), paragraphs: [para(1, 2), para(3, 4), para(5, 6), para(7, 8), para(9, 10)] };
+  assert.ok(!validateBrief(b, ranked).some((p) => /biggest stories/.test(p)));
+});
+
+test('the biggest stories are named in the prompt, not just ranked in code', async () => {
+  const { buildPrompt } = await import('../lib/write');
+  const ranked = CLUSTERS.map((c, i) => ({ ...c, score: 100 - i, title: `Headline number ${c.id}` }));
+  const p = buildPrompt(ranked, null);
+  assert.match(p, /BIGGEST STORIES/);
+  assert.match(p, /Headline number 1/, 'the top story is called out by name');
+});
+
+test('nothing is forced on a day when no story stands out', async () => {
+  const { topStories } = await import('../lib/write');
+  // Every candidate scoring the same means the ranking has nothing to say.
+  const flat = CLUSTERS.map((c) => ({ ...c, score: 1 }));
+  assert.deepEqual(topStories(flat), [], 'no story is the day');
+});
