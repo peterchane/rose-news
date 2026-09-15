@@ -164,6 +164,22 @@ function techPenalty(section: Section, weight: number, sources: number): number 
 }
 
 /**
+ * Science gets the same treatment tech already had.
+ *
+ * ScienceDaily runs a firehose of press releases — "This Australian cave hid
+ * 25,000 years of ritual secrets" is a curiosity, not news, and it took a
+ * paragraph in a real edition. A discovery worth her time is one a national
+ * desk also ran, or one several outlets picked up.
+ */
+export const SCIENCE_NICHE_DEMOTION = 0.2;
+
+function sciencePenalty(section: Section, weight: number, sources: number): number {
+  if (section !== 'science') return 1;
+  if (sources >= 2) return 1;
+  return weight >= TECH_MAINSTREAM_WEIGHT ? 1 : SCIENCE_NICHE_DEMOTION;
+}
+
+/**
  * War coverage. Rose gets it only when it's the day's top story, so a cluster
  * that isn't broadly corroborated gets pushed down out of the quota rather than
  * filtered outright — a genuinely major development still leads.
@@ -343,6 +359,7 @@ export function selectClusters(
         warPenalty(primary.title, coverage.length) *
         triviaPenalty(primary.title) *
         techPenalty(section, primary.weight, coverage.length) *
+        sciencePenalty(section, primary.weight, coverage.length) *
         notableOnlyAdjustment(primary.title, section, notableOnlyPattern, notableEvent),
     };
   });

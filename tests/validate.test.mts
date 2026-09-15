@@ -525,3 +525,32 @@ test('nothing is forced on a day when no story stands out', async () => {
   const flat = CLUSTERS.map((c) => ({ ...c, score: 1 }));
   assert.deepEqual(topStories(flat), [], 'no story is the day');
 });
+
+test('niche-outlet science is demoted the way niche tech already was', async () => {
+  const { SCIENCE_NICHE_DEMOTION } = await import('../lib/select');
+  // ScienceDaily runs a firehose of press releases. "This Australian cave hid
+  // 25,000 years of ritual secrets" took a paragraph in a real edition.
+  assert.ok(SCIENCE_NICHE_DEMOTION < 0.5, 'a curiosity must not outrank real news');
+});
+
+test('reader solicitations are not news', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  for (const t of [
+    'Do You Have Questions About A.I.? We Want to Answer Them.',
+    'Tell Us About Your First Job',
+    'Share your photos of the eclipse',
+    'Reader questions: what happens next with tariffs',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
+  }
+});
+
+test('ordinary headlines with those words still get through', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  for (const t of [
+    'Senators want to know how the agency spent the money',
+    'Voters share blame for the turnout, analysts say',
+  ]) {
+    assert.ok(isReportableNews(t, 'https://example.com/news/x'), `should keep: ${t}`);
+  }
+});
