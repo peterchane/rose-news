@@ -114,11 +114,69 @@ function scoreCluster(articles: Article[]): number {
 }
 
 /**
+ * Which article's headline speaks for the cluster.
+ *
+ * Outlet weight alone chose it, which meant one paper's unusual angle could
+ * stand in for the whole story: a US rate hike that CBS, NYT and the BBC all
+ * reported plainly reached Rose as "Why the Bank of England Didn't Follow the
+ * Fed", because the Journal outranked them and had written the sidebar.
+ *
+ * The headline that shares the most language with the others is the one the
+ * story is actually about; an outlier angle shares the least. Weight still
+ * breaks ties, so this only overrides it when a headline is a genuine outlier.
+ */
+export function representative(byRank: Article[]): Article {
+  if (byRank.length < 3) return byRank[0];
+
+  const tokenSets = byRank.map((a) => tokenize(a.title));
+  const centrality = tokenSets.map((set, i) =>
+    tokenSets.reduce((sum, other, j) => (i === j ? sum : sum + overlap(set, other).ratio), 0),
+  );
+
+  const best = centrality.reduce((bi, score, i) => (score > centrality[bi] ? i : bi), 0);
+  // Only override the weighted pick when it is a real outlier, not a near-tie.
+  return centrality[best] > centrality[0] * 1.35 ? byRank[best] : byRank[0];
+}
+
+/**
  * A story's section is decided by its members, not by which feed happened to
  * surface it first — the Strait of Hormuz story arrives via both a world feed
  * and a business feed, and belongs in world.
  */
+/**
+ * American institutions. A story about these is US news wherever it was filed.
+ *
+ * Section comes from the feed, so the Federal Reserve raising rates arrived as
+ * WORLD news because the BBC and NPR's world desk carried it — and then the
+ * "US news before foreign" rule pushed the day's biggest domestic story to the
+ * back of the email, behind a Bank of England sidebar.
+ */
+const US_SUBJECT = new RegExp(
+  [
+    /\b(federal reserve|the fed\b|fed\b.{0,20}\b(rate|interest|chair)|fomc)\b/,
+    /\b(congress|senate|house of representatives|capitol hill|white house|oval office)\b/,
+    /\b(supreme court|justice department|pentagon|state department|treasury|irs|fbi|cia|ice\b|epa|fda|cdc)\b/,
+    /\b(president trump|trump administration|vice president|governor of|u\.?s\.? (government|official|economy|troops|court|senator|state))\b/,
+    /\b(american|americans|united states|u\.?s\.?)\b.{0,30}\b(economy|inflation|rates?|election|voters?|jobs|prices|tariffs?)\b/,
+    /\b(medicare|medicaid|social security|obamacare|wall street|nasdaq|dow jones)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+export function isUsSubject(title: string): boolean {
+  return US_SUBJECT.test(title);
+}
+
 function resolveSection(articles: Article[]): Section {
+  // A story about American institutions is US news, whichever desk filed it.
+  if (articles.some((a) => isUsSubject(a.title))) {
+    const already = articles.map((a) => a.section);
+    // Sports, USC and the holiday keep their own slots; only news is re-filed.
+    if (!already.some((s) => s === 'sports' || s === 'usc' || s === 'jewish')) return 'us';
+  }
+
   const tally = new Map<Section, number>();
   for (const a of articles) {
     tally.set(a.section, (tally.get(a.section) ?? 0) + a.weight);
@@ -328,7 +386,7 @@ export function selectClusters(
     const byRank = [...c.articles].sort(
       (a, b) => b.weight - a.weight || b.publishedAt.getTime() - a.publishedAt.getTime(),
     );
-    const primary = byRank[0];
+    const primary = representative(byRank);
 
     // One entry per outlet — a single outlet covering a story twice shouldn't
     // read as two independent sources.

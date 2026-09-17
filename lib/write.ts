@@ -219,7 +219,7 @@ ORDER:
 - A good lead is CONCRETE and affects people she can picture — money, jobs, schools, prices, a decision that changes something, a result. A bad lead is procedural or institutional: a lawsuit filed, a hearing scheduled, one agency's dispute with another, an argument about an international body. Those can appear later in the email, but never open it.
 - Sports only when it's about a team she follows. If no sports candidates are offered, skip sports entirely — never fill the space with a team she has no stake in.
 - After the lead, every US story comes before any foreign one. The lead itself can be foreign if that's genuinely the day's biggest story. Include a major tech story when one is offered.
-- The Jewish holiday gets one or two sentences, near the end.
+- NEVER mention a Jewish or religious holiday. One line about the next holiday is added to the email automatically, from a calendar. Writing your own produces a second, wrong one.
 Never announce the structure ("now to the news"). Just move between paragraphs.
 
 FORM:
@@ -550,6 +550,20 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     );
   }
 
+  // The holiday line is appended from a calendar. A model-written one is both
+  // a duplicate and, reliably, the wrong holiday — an edition announced Rosh
+  // Hashanah six days after it ended.
+  const HOLIDAY_NAMES =
+    /\b(rosh hashanah|rosh hashana|yom kippur|sukkot|simchat torah|hanukkah|chanukah|purim|passover|pesach|shavuot|tisha b'av|high holy days|shabbat)\b/i;
+  brief.paragraphs.forEach((para, i) => {
+    if (HOLIDAY_NAMES.test(para)) {
+      retry(
+        `Paragraph ${i + 1} writes about a religious holiday. Remove that sentence — ` +
+          'the holiday line is added to the email automatically from a calendar.',
+      );
+    }
+  });
+
   const missed = topStories(clusters).filter((c) => !allCited.has(c.id));
   if (missed.length) {
     retry(
@@ -576,7 +590,6 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     // weekly, so demanding something every day forces a repeat or burns a retry
     // on a brief that is otherwise fine.
     ['sports', 'sports', 'normally near the end'],
-    ['jewish', 'Jewish holiday', 'one or two sentences on the next holiday, near the end'],
   ] as const) {
     const available = clusters.some((c) => c.section === section);
     const cited = [...allCited].some((id) => sectionById.get(id) === section);

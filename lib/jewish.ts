@@ -151,3 +151,42 @@ export async function nextHolidayCluster(today: string): Promise<Omit<Cluster, '
     return null;
   }
 }
+
+/**
+ * The holiday line, written in code and dropped into the email as-is.
+ *
+ * The writer kept getting this wrong in the one way that matters: on a day the
+ * calendar said Erev Yom Kippur, an edition announced Rosh Hashanah — a holiday
+ * already six days past — tacked onto the end of an unrelated paragraph. A
+ * holiday sentence has one correct form and the calendar already knows it, so
+ * there is nothing here for a writer to add and plenty for it to get wrong.
+ *
+ * Returns null on any failure or on a day no holiday is near. Like the weather
+ * line, it is a nicety and must never be able to stop the brief.
+ */
+export async function todaysHolidayNote(today: string): Promise<string | null> {
+  try {
+    const res = await fetch(HEBCAL, { signal: AbortSignal.timeout(12_000), cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { items?: Parameters<typeof pickNextHoliday>[0] };
+    const holiday = pickNextHoliday(data.items ?? [], today);
+    if (!holiday || !shouldMention(holiday.daysAway)) return null;
+    return holidaySentence(holiday);
+  } catch (err) {
+    console.warn('[jewish] calendar unavailable; omitting the holiday line:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** One plain sentence, in the register of the rest of the email. */
+export function holidaySentence(h: Holiday): string {
+  const date = new Date(`${h.date}T12:00:00Z`).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+  if (h.daysAway === 0) return `${h.title} begins today, ${date}.`;
+  if (h.daysAway === 1) return `${h.title} begins tomorrow, ${date}.`;
+  return `${h.title} begins in ${h.daysAway} days, on ${date}.`;
+}

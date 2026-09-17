@@ -554,3 +554,71 @@ test('ordinary headlines with those words still get through', async () => {
     assert.ok(isReportableNews(t, 'https://example.com/news/x'), `should keep: ${t}`);
   }
 });
+
+test('capital punishment is filtered however the headline words it', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // "Alabama inmate to die by lethal injection" cleared the death list because
+  // it said "die", not "dies" or "died".
+  for (const t of [
+    'After nitrogen execution blocked, Alabama inmate to die by lethal injection',
+    'Supreme Court halts execution hours before it was scheduled',
+    'Governor grants clemency to death row prisoner',
+    'State sets execution date for convicted inmate',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});
+
+test('ordinary uses of "execute" still get through', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  for (const t of [
+    'Company executed its merger plan ahead of schedule',
+    'The executive order takes effect Monday',
+    'USC executes a comeback in the fourth quarter',
+  ]) {
+    assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
+  }
+});
+
+test('a story about American institutions is US news, whoever filed it', async () => {
+  const { isUsSubject } = await import('../lib/select');
+  // The Fed raising rates arrived as WORLD news because the BBC and NPR's world
+  // desk carried it, so "US before foreign" pushed it to the back of the email.
+  for (const t of [
+    'US interest rates raised for first time in three years',
+    'The Fed raises interest rates',
+    'Supreme Court hears arguments on the tariff case',
+    'Congress returns with a shutdown deadline looming',
+  ]) {
+    assert.ok(isUsSubject(t), `should be filed as US news: ${t}`);
+  }
+  for (const t of [
+    'Denmark says Russian warship fired flares at a helicopter',
+    'Bank of England leaves rates unchanged',
+  ]) {
+    assert.ok(!isUsSubject(t), `should stay foreign: ${t}`);
+  }
+});
+
+test('the holiday line is written in code, with the right holiday', async () => {
+  const { holidaySentence } = await import('../lib/jewish');
+  // An edition announced Rosh Hashanah six days after it ended, on a day the
+  // calendar said Erev Yom Kippur.
+  const h = { title: 'Erev Yom Kippur', date: '2026-09-20', daysAway: 3, hebrewDate: '', memo: '', link: '' };
+  assert.equal(holidaySentence(h), 'Erev Yom Kippur begins in 3 days, on Sunday, September 20.');
+  assert.equal(holidaySentence({ ...h, daysAway: 0 }), 'Erev Yom Kippur begins today, Sunday, September 20.');
+  assert.equal(holidaySentence({ ...h, daysAway: 1 }), 'Erev Yom Kippur begins tomorrow, Sunday, September 20.');
+});
+
+test('the writer must not write its own holiday sentence', async () => {
+  const { isFatal, isWorthRetry } = await import('../lib/write');
+  // It kept producing the wrong one — Rosh Hashanah six days after it ended —
+  // and the correct line is appended from the calendar anyway.
+  const p = 'The Senate [voted on Tuesday](#1). Rosh Hashanah begins at sundown Friday, starting the Jewish new year.';
+  const b = { ...ok(), paragraphs: [para(9, 10), p, para(3, 4), para(5, 6), para(7, 8)] };
+  const problems = validateBrief(b, CLUSTERS);
+  const hit = problems.find((x) => /religious holiday/.test(x));
+  assert.ok(hit, problems.join(' | '));
+  assert.ok(isWorthRetry(hit!), 'worth another attempt');
+  assert.ok(!isFatal(hit!), 'but never worth losing the email');
+});

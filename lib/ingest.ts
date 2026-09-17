@@ -254,7 +254,13 @@ const DISTRESSING = new RegExp(
     /\b\d+\s+(dead|killed|injured|missing|hurt)\b/,
     /\b(death toll|casualties|bodies of)\b/,
     // Death in any framing. Peter: "nothing about death".
-    /\b(deaths?|dying|died|dead|dies|killed|kills|fatalit(y|ies)|mourn(s|ed|ing)?|funeral|obituar(y|ies)|posthumous)\b/,
+    /\b(deaths?|dying|died|dead|dies|die|killed|kills|fatalit(y|ies)|mourn(s|ed|ing)?|funeral|obituar(y|ies)|posthumous)\b/,
+    // Capital punishment. "Alabama inmate to die by lethal injection" cleared
+    // the list above because it said "die", not "dies" or "died".
+    /\b(death penalty|capital punishment|death row|lethal injection|firing squad|gas chamber|executioner|death warrant|death chamber)\b/,
+    /\bnitrogen\b.{0,20}\b(execution|hypoxia|gas)\b/,
+    /\b(inmate|prisoner|condemned|convict)\b.{0,40}\b(execut\w*|die|death|last meal|clemency|stay of)\b/,
+    /\bexecut(e|es|ed|ion|ions)\b.{0,40}\b(inmate|prisoner|condemned|death|state of|scheduled)\b/,
     /\b(terminal(ly)? ill|life support|hospice|euthanasia|assisted dying)\b/,
 
     // Disease and grim medical news. Peter: "nothing about disease or bad

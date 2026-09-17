@@ -72,6 +72,7 @@ export function renderBrief(
   brief: Brief,
   clusters: Cluster[],
   weather: string | null = null,
+  holiday: string | null = null,
 ): RenderedBrief {
   const byId = new Map(clusters.map((c) => [c.id, c]));
   const cited = new Set<number>();
@@ -106,6 +107,11 @@ export function renderBrief(
                     ? `<p style="margin:0 0 24px;padding:12px 14px;background-color:#f0f4f8;border-radius:6px;font-size:15px;line-height:1.5;color:${TEXT_COLOR};">${escapeHtml(weather)}</p>`
                     : ''
                 }${bodyHtml}
+${
+                  holiday
+                    ? `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:${MUTED_COLOR};">${escapeHtml(holiday)}</p>`
+                    : ''
+                }
                 <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e5e5e2;font-size:14px;line-height:1.6;color:${TEXT_COLOR};">
                   <strong style="color:${MUTED_COLOR};">Message from Dad:</strong> ${escapeHtml(note)}
                 </p>
@@ -132,7 +138,7 @@ export function renderBrief(
     })
     .join('\n');
 
-  const text = `${weather ? `${weather}\n\n` : ''}${textBody}\n\nMessage from Dad: ${note}\n\n---\nSOURCES\n${sources}\n`;
+  const text = `${weather ? `${weather}\n\n` : ''}${textBody}${holiday ? `\n\n${holiday}` : ''}\n\nMessage from Dad: ${note}\n\n---\nSOURCES\n${sources}\n`;
 
   return { subject: brief.subject, html, text, citedIds: [...cited].sort((a, b) => a - b) };
 }

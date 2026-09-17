@@ -7,7 +7,7 @@ import { todaysWeatherNote } from './weather';
 import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
 import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT } from './teams';
-import { nextHolidayCluster } from './jewish';
+import { todaysHolidayNote } from './jewish';
 import { todayPT } from './schedule';
 import { fetchCredits, lowBalanceWarning } from './credits';
 
@@ -38,11 +38,10 @@ export async function buildBrief(): Promise<PipelineResult> {
     );
   }
 
-  // The holiday calendar isn't a feed; it's computed and appended so it shows
-  // up every day rather than only when an outlet writes about it.
-  const holiday = await nextHolidayCluster(todayPT());
-  const withHoliday = holiday ? [...clusters, { ...holiday, id: clusters.length + 1 }] : clusters;
-  if (holiday) console.log(`[jewish] ${holiday.title}`);
+  // The holiday line is written in code and appended at render time, not
+  // offered to the writer as a story. Asked to write it, the model announced a
+  // holiday that had already passed.
+  const withHoliday = clusters;
 
   const previous = await loadPreviousBrief();
 
@@ -63,8 +62,9 @@ export async function buildBrief(): Promise<PipelineResult> {
 
   const brief = await writeBrief(kept, previous);
   // Never blocks the brief: an unavailable forecast just means no weather line.
-  const weather = await todaysWeatherNote();
-  const rendered = renderBrief(brief, kept, weather);
+  const [weather, holiday] = await Promise.all([todaysWeatherNote(), todaysHolidayNote(todayPT())]);
+  if (holiday) console.log(`[jewish] ${holiday}`);
+  const rendered = renderBrief(brief, kept, weather, holiday);
 
   return { brief, rendered, clusters: kept, failures };
 }
