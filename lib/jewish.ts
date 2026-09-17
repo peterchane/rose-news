@@ -178,6 +178,19 @@ export async function todaysHolidayNote(today: string): Promise<string | null> {
   }
 }
 
+/**
+ * What to call a holiday in the email.
+ *
+ * Hebcal's names are calendar entries, not what people say. The evening before
+ * Yom Kippur is Kol Nidre — Peter's correction — and Rose gets the same brief
+ * gloss unfamiliar terms get everywhere else in the brief.
+ */
+export function holidayName(title: string): string {
+  if (/^erev yom kippur$/i.test(title)) return 'Kol Nidre, the service that opens Yom Kippur,';
+  if (/^erev rosh hashana(h)?$/i.test(title)) return 'Rosh Hashanah, the Jewish new year,';
+  return title.replace(/\bRosh Hashana\b/g, 'Rosh Hashanah');
+}
+
 /** One plain sentence, in the register of the rest of the email. */
 export function holidaySentence(h: Holiday): string {
   const date = new Date(`${h.date}T12:00:00Z`).toLocaleDateString('en-US', {
@@ -186,7 +199,8 @@ export function holidaySentence(h: Holiday): string {
     day: 'numeric',
     timeZone: 'UTC',
   });
-  if (h.daysAway === 0) return `${h.title} begins today, ${date}.`;
-  if (h.daysAway === 1) return `${h.title} begins tomorrow, ${date}.`;
-  return `${h.title} begins in ${h.daysAway} days, on ${date}.`;
+  const name = holidayName(h.title);
+  if (h.daysAway === 0) return `${name} begins today, ${date}.`;
+  if (h.daysAway === 1) return `${name} begins tomorrow, ${date}.`;
+  return `${name} begins in ${h.daysAway} days, on ${date}.`;
 }

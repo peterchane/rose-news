@@ -605,9 +605,10 @@ test('the holiday line is written in code, with the right holiday', async () => 
   // An edition announced Rosh Hashanah six days after it ended, on a day the
   // calendar said Erev Yom Kippur.
   const h = { title: 'Erev Yom Kippur', date: '2026-09-20', daysAway: 3, hebrewDate: '', memo: '', link: '' };
-  assert.equal(holidaySentence(h), 'Erev Yom Kippur begins in 3 days, on Sunday, September 20.');
-  assert.equal(holidaySentence({ ...h, daysAway: 0 }), 'Erev Yom Kippur begins today, Sunday, September 20.');
-  assert.equal(holidaySentence({ ...h, daysAway: 1 }), 'Erev Yom Kippur begins tomorrow, Sunday, September 20.');
+  const kol = 'Kol Nidre, the service that opens Yom Kippur,';
+  assert.equal(holidaySentence(h), `${kol} begins in 3 days, on Sunday, September 20.`);
+  assert.equal(holidaySentence({ ...h, daysAway: 0 }), `${kol} begins today, Sunday, September 20.`);
+  assert.equal(holidaySentence({ ...h, daysAway: 1 }), `${kol} begins tomorrow, Sunday, September 20.`);
 });
 
 test('the writer must not write its own holiday sentence', async () => {
@@ -621,4 +622,18 @@ test('the writer must not write its own holiday sentence', async () => {
   assert.ok(hit, problems.join(' | '));
   assert.ok(isWorthRetry(hit!), 'worth another attempt');
   assert.ok(!isFatal(hit!), 'but never worth losing the email');
+});
+
+test('the night before Yom Kippur is called Kol Nidre', async () => {
+  const { holidaySentence, holidayName } = await import('../lib/jewish');
+  // Peter's correction. Hebcal calls it "Erev Yom Kippur", which is the
+  // calendar entry, not what anyone says.
+  const h = { title: 'Erev Yom Kippur', date: '2026-09-20', daysAway: 3, hebrewDate: '', memo: '', link: '' };
+  assert.equal(
+    holidaySentence(h),
+    'Kol Nidre, the service that opens Yom Kippur, begins in 3 days, on Sunday, September 20.',
+  );
+  assert.match(holidayName('Erev Rosh Hashana'), /Rosh Hashanah, the Jewish new year,/);
+  assert.equal(holidayName('Yom Kippur'), 'Yom Kippur', 'the holiday itself is left alone');
+  assert.equal(holidayName('Sukkot'), 'Sukkot');
 });
