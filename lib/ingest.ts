@@ -238,6 +238,16 @@ const DISTRESSING = new RegExp(
     /\b(fraud|embezzl|extort|racketeer|money laundering|trafficking|smuggl)\w*/,
     /\b(gunfire|shot dead|shooting|gunshot|stabbing|hostage|kidnap)\w*/,
     /\b(prison sentence|jailed|behind bars|death row|executed by)\b/,
+    // Prisons and the people in them. A Texas prison's braille programme is a
+    // kind story, but it is still a story about criminals.
+    /\b(prisons?|prisoners?|incarcerat\w*|inmates?|parole[ed]?|probation|correctional|jails?|penitentiary|ex-offenders?|criminal records?|re-?entry program)\b/,
+    // "Fatally" and bare "fatal" — the list above wanted "fatal crash", so
+    // "Woman Fatally Hit by Car" walked straight through.
+    /\bfatal(ly)?\b/,
+    // Payouts over a death. A $40M Uber settlement for a woman killed on a
+    // freeway is a wrongful-death story however the headline frames it.
+    /\b(settle(s|d|ment)?|payout|damages|compensation)\b.{0,50}\b(death|dead|killed|fatal\w*|victims?|crash|family of|parents of)\b/,
+    /\b(death|killed|fatal\w*|victims?|crash)\b.{0,50}\b(settle(s|d|ment)?|payout|damages|wrongful death)\b/,
 
     // Personal life and scandal.
     /\b(divorce|divorcing|split(s|ting)? from|breakup|cheating scandal|affair with|custody battle|restraining order|paternity)\b/,

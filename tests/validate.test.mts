@@ -637,3 +637,40 @@ test('the night before Yom Kippur is called Kol Nidre', async () => {
   assert.equal(holidayName('Yom Kippur'), 'Yom Kippur', 'the holiday itself is left alone');
   assert.equal(holidayName('Sukkot'), 'Sukkot');
 });
+
+test('prisons and the people in them are filtered', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // A Texas prison's braille programme is a kind story, and still a story
+  // about criminals. Peter: "this is about criminals and not actual news."
+  for (const t of [
+    'A program in a Texas prison teaches incarcerated women to transcribe braille',
+    'State expands parole eligibility for nonviolent offenders',
+    'New reentry program helps people with criminal records find work',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});
+
+test('a payout over a death is a death story, however it is framed', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  // "Uber to Pay $40 Million to Parents of Woman Fatally Hit by Car" cleared
+  // the death list because it wanted "fatal crash", not "fatally hit".
+  for (const t of [
+    'Uber to Pay $40 Million to Parents of Woman Fatally Hit by Car',
+    'Company settles wrongful death suit for $12 million',
+    'City agrees to $5 million payout over crash victims',
+  ]) {
+    assert.ok(isDistressing(t), `should be filtered: ${t}`);
+  }
+});
+
+test('ordinary settlements and business news still get through', async () => {
+  const { isDistressing } = await import('../lib/ingest');
+  for (const t of [
+    'Union settles contract talks with the airline',
+    'Nvidia settles a patent dispute with Qualcomm',
+    'Fed raises interest rates for the first time in three years',
+  ]) {
+    assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
+  }
+});
