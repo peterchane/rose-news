@@ -38,6 +38,7 @@ world    | The Guardian            | https://www.theguardian.com/world/rss      
 
 # ---- Business & Economy ----
 business | CNBC                    | https://www.cnbc.com/id/100003114/device/rss/rss.html        | 0.9
+business | Variety Business        | https://variety.com/v/biz/feed/                              | 0.8 | 48
 business | The Wall Street Journal | https://feeds.content.dowjones.io/public/rss/RSSWorldNews
 
 # ---- Technology ----
@@ -80,7 +81,7 @@ usc      | Daily Trojan            | https://dailytrojan.com/category/sports/fee
 # Raise a number to make that topic a bigger share of the email.
 quota    | us       | 8
 quota    | world    | 5
-quota    | business | 4
+quota    | business | 6
 quota    | tech     | 4
 quota    | science  | 4
 quota    | sports   | 6
