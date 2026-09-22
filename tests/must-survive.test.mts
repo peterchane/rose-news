@@ -31,6 +31,7 @@ const MUST_SURVIVE = [
   'Union settles contract talks with the airline',
   'Nvidia settles a patent dispute with Qualcomm',
   'Oil prices climb above $90 a barrel',
+  'Mortgage demand from homebuyers drops 19% from a year ago',
   'Ford cuts truck prices to move inventory',
 
   // Tech and science
@@ -80,6 +81,12 @@ const MUST_BLOCK = [
   'Uber to Pay $40 Million to Parents of Woman Fatally Hit by Car',
   'Ross Fire still burning, with 90,000 acres scorched',
   'A program in a Texas prison teaches incarcerated women to transcribe braille',
+  // Rate tables and shopping guides: useful to somebody, not news, and Rose
+  // has no savings to move.
+  'Best High-Yield Savings Accounts for September 2026: Up to 4.50%',
+  'The best credit cards for travel in 2026',
+  'Our picks: the best budgeting apps',
+  'Top mortgage rates this week',
 ];
 
 test('word variants do not slip past the filters', () => {

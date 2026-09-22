@@ -92,8 +92,24 @@ const JUNK_TITLE =
 const COLUMN_TITLE =
   /^(good news in history|what we're reading|what we’re reading|the spark|life lessons|quote of the day|photo of the day|weekly roundup|this week in|your weekly|what went right)\b|\bin history,|\bnewsletter\b|\bhoroscope\b|\bastrology\b/i;
 
+/**
+ * Rate tables and shopping guides. "Best High-Yield Savings Accounts for
+ * September 2026: Up to 4.50%" is a product listicle with a month stamped on
+ * it — useful to somebody, but it is not news and Rose has no savings to move.
+ */
+const SERVICE_JOURNALISM = new RegExp(
+  [
+    /\b(best|top)\b.{0,40}\b(accounts?|cards?|rates?|banks?|brokers?|apps?|deals?|plans?|providers?)\b/,
+    /\b(best|top|cheapest)\b.{0,40}\b(january|february|march|april|may|june|july|august|september|october|november|december) \d{4}\b/,
+    /\bup to \d+(\.\d+)?%/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
 const EVERGREEN_TITLE =
-  /\b(power rankings|fantasy (football|baseball|basketball|hockey)|do not draft|draft guide|mock draft|start[' ]?em|sit[' ]?em|way-too-early|best bets|odds, picks|predictions? for|everything to know|what to know about|how to watch|takeaways from|winners and losers|grades?:|ranking every|every team'?s?|fates? of all|all \d+ (mlb|nfl|nba|nhl|college) teams|since the trade deadline|season preview|what we learned|reshapes|what it means for|impact of the|revisiting|looking back at|why the \w+ (are|have|is)|the case for|the case against|villain|narrative|storyline|proves? that|shows? why|here'?s why|columnist|on this day in|this day in history|years ago today|from the archive|throwback|we want to (hear|answer|know)|tell us (about|what|your)|share your (story|stories|questions?|photos?)|do you have (questions?|a story)|send us your|ask us anything|submit your|reader (questions?|mailbag)|your questions,? answered|we asked you)\b/i;
+  /\b(power rankings|fantasy (football|baseball|basketball|hockey)|do not draft|draft guide|mock draft|start[' ]?em|sit[' ]?em|way-too-early|best bets|odds, picks|predictions? for|everything to know|what to know about|how to watch|takeaways from|winners and losers|grades?:|ranking every|every team'?s?|fates? of all|all \d+ (mlb|nfl|nba|nhl|college) teams|since the trade deadline|season preview|what we learned|reshapes|what it means for|impact of the|revisiting|looking back at|why the \w+ (are|have|is)|the case for|the case against|villain|narrative|storyline|proves? that|shows? why|here'?s why|columnist|on this day in|this day in history|years ago today|from the archive|throwback|high-?yield savings|annual percentage yield|our picks|editors'? picks|buying guide|we tested|reviewed:|deals? of the (day|week)|what to buy|worth buying|we want to (hear|answer|know)|tell us (about|what|your)|share your (story|stories|questions?|photos?)|do you have (questions?|a story)|send us your|ask us anything|submit your|reader (questions?|mailbag)|your questions,? answered|we asked you)\b/i;
 
 /**
  * Individual violent crime — school shootings, family murders, stabbings,
@@ -430,6 +446,7 @@ export function isReportableNews(
   if (JUNK_PATH.test(`${path}/`)) return false;
   if (JUNK_TITLE.test(title)) return false;
   if (EVERGREEN_TITLE.test(title)) return false;
+  if (SERVICE_JOURNALISM.test(title)) return false;
   if (COLUMN_TITLE.test(title)) return false;
   // Applies everywhere, including good news — especially good news.
   if (isSentimentalFiller(title)) return false;
