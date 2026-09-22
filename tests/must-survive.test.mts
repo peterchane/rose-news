@@ -86,3 +86,22 @@ test('word variants do not slip past the filters', () => {
   const missed = MUST_BLOCK.filter((t) => isReportableNews(t, 'https://example.com/news/x'));
   assert.deepEqual(missed, [], `these variants got through:\n${missed.join('\n')}`);
 });
+
+/**
+ * Stems are the right tool and they cut both ways: `\bstab\w*` matched
+ * "stability", which quietly dropped a Trump-Xi trade story three outlets ran.
+ * These are innocent words that contain a blocked stem.
+ */
+const INNOCENT_LOOKALIKES = [
+  'Trump and Xi seek trade stability as tariffs loom',
+  'The killer app for AI is still unclear, analysts say',
+  'Analysts expect market stability through the quarter',
+  'A deadline looms for the funding bill',
+  'The company established a new research arm',
+  'Riotous applause greeted the announcement',
+];
+
+test('innocent words containing a blocked stem are not filtered', () => {
+  const blocked = INNOCENT_LOOKALIKES.filter((t) => !isReportableNews(t, 'https://example.com/news/x'));
+  assert.deepEqual(blocked, [], `stems are over-matching:\n${blocked.join('\n')}`);
+});

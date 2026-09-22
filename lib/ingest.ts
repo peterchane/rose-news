@@ -111,7 +111,7 @@ const VIOLENT_CRIME = new RegExp(
     /\b(boy|girl|man|woman|teen|teenager|student|pupil|father|mother|son|daughter|husband|wife|suspect|attacker|driver)\s+(kills?|killed|shoots?|shot|stabb\w*|murder\w*)\b/,
     /\b(shooter|gunman|mass shooting|school shooting|serial killer|manhunt)\b/,
     /\bopen(s|ed)? fire\b/,
-    /\bstab\w*/,
+    /\b(stabs?|stabb\w*)\b/,
     /\bmurder\w*/,
     /\babduct\w*/,
     /\bkidnap\w*/,
@@ -264,12 +264,12 @@ const DISTRESSING = new RegExp(
     /\b\d+\s+(dead|killed|injured|missing|hurt)\b/,
     /\b(death toll|casualties|bodies of)\b/,
     // Death in any framing. Peter: "nothing about death".
-    /\b(death\w*|dying|die[sd]?|dead|kill\w*|fatalit\w*|mourn\w*|funeral\w*|obituar\w*|posthumous)\b/,
+    /\b(death\w*|dying|die[sd]?|dead|kill(s|ed|ing|ings)?\b|killers?\b(?!\s+app)|fatalit\w*|mourn\w*|funeral\w*|obituar\w*|posthumous)\b/,
     // Whole categories that were missing rather than merely mis-spelled.
     /\b(drown\w*|suffocat\w*|starv\w*|famine|malnourish\w*)\b/,
     /\b(terror\w*|hostage\w*|tortur\w*|atrocit\w*|massacre[ds]?)\b/,
     /\b(wounded|wounds?|maim\w*|mutilat\w*|amputat\w*)\b/,
-    /\b(riot\w*|looting|unrest|insurrect\w*|militia)\b/,
+    /\b(riots?|rioting|rioters?|looting|unrest|insurrect\w*|militia)\b/,
     // Capital punishment. "Alabama inmate to die by lethal injection" cleared
     // the list above because it said "die", not "dies" or "died".
     /\b(death penalty|capital punishment|death row|lethal injection|firing squad|gas chamber|executioner|death warrant|death chamber)\b/,
