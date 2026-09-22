@@ -377,7 +377,7 @@ export function isWorthRetry(problem: string): boolean {
 }
 
 /** How many of the day's stories are treated as unmissable. */
-export const TOP_STORY_COUNT = 3;
+export const TOP_STORY_COUNT = 5;
 
 /**
  * The day's biggest stories, by the ranking selection already computed.
@@ -386,17 +386,64 @@ export const TOP_STORY_COUNT = 3;
  * which mattered most — so it chose whatever read well. This is the ranking
  * finally being told to the writer.
  */
+/**
+ * Sports and USC have their own slot and their own boost. A favourite team
+ * scores 6.5x so it always appears, which is right for reserving it a
+ * paragraph and wrong for deciding what the day's news is: a Cubs facial
+ * fracture scored 34 against 9 for the President's UN speech, and the email
+ * built itself around the Cubs and a set of curiosities.
+ */
+const NOT_THE_DAYS_NEWS = new Set(['sports', 'usc', 'jewish']);
+
+/** Words too common to mean two headlines are the same story. */
+const STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'over', 'into', 'his', 'her', 'its',
+  'are', 'was', 'were', 'has', 'have', 'will', 'says', 'said', 'new', 'more', 'after', 'amid',
+  'but', 'not', 'how', 'why', 'what', 'who', 'you', 'out', 'off', 'all', 'can', 'may', 'now',
+]);
+
 export function topStories(clusters: Cluster[], count = TOP_STORY_COUNT): Cluster[] {
   const ranked = [...clusters]
-    .filter((c) => c.section !== 'jewish')
+    .filter((c) => !NOT_THE_DAYS_NEWS.has(c.section))
     .sort((a, b) => b.score - a.score);
   if (ranked.length === 0) return [];
 
-  // A story only counts as one of the day's biggest if it actually stands out.
-  // On a flat day nothing does, and nothing should be forced.
-  const scores = ranked.map((c) => c.score).sort((a, b) => a - b);
-  const median = scores[Math.floor(scores.length / 2)];
-  return ranked.slice(0, count).filter((c) => c.score > median);
+  // Nothing is forced on a day when the ranking has nothing to say — every
+  // candidate scoring the same means no story stands out. Otherwise the top of
+  // the list is the day's news, whatever the spread looks like.
+  const flat = ranked[0].score === ranked[ranked.length - 1].score;
+  if (flat) return [];
+
+  // Two headlines about the same event must not take two of the slots. The UN
+  // speech arrived twice — "Trump Tells U.N...." and "Trump's U.N. Speech
+  // Comes at a Time of Tumult" — and between them crowded out the day's other
+  // news.
+  const picked: Cluster[] = [];
+  const seen: Set<string>[] = [];
+  for (const c of ranked) {
+    if (picked.length >= count) break;
+    const words = new Set(
+      c.title
+        .toLowerCase()
+        // Fold initialisms: "U.N." must survive as "un", not vanish.
+        .replace(/\b([a-z])\.(?=[a-z]\.)/g, '$1')
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .split(/\s+/)
+        .map((t) => t.replace(/s$/, ''))
+        .filter((t) => t.length > 1 && !STOPWORDS.has(t)),
+    );
+    const duplicate = seen.some((prev) => {
+      let shared = 0;
+      for (const t of words) if (prev.has(t)) shared++;
+      // Two shared distinctive words is enough; the same event rarely shares
+      // more than that across two newsrooms' phrasings.
+      return shared >= 2 && shared / Math.min(prev.size, words.size) >= 0.25;
+    });
+    if (duplicate) continue;
+    picked.push(c);
+    seen.push(words);
+  }
+  return picked;
 }
 
 /** The problem text without its severity marker, for prompts and alerts. */

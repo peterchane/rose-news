@@ -494,7 +494,7 @@ test("the day's biggest stories must be covered", async () => {
   const ranked = CLUSTERS.map((c, i) => ({ ...c, score: 100 - i }));
   const top = topStories(ranked);
   assert.equal(top.length, TOP_STORY_COUNT);
-  assert.deepEqual(top.map((c) => c.id), [1, 2, 3], 'highest scoring first');
+  assert.deepEqual(top.map((c) => c.id), [1, 2, 3, 4, 5], 'highest scoring first');
 
   // A brief citing none of them.
   const b = { ...ok(), paragraphs: [para(9, 10), para(4, 5), para(6, 7), para(8, 4), para(5, 6)] };
@@ -673,4 +673,57 @@ test('ordinary settlements and business news still get through', async () => {
   ]) {
     assert.ok(!isDistressing(t), `should NOT be filtered: ${t}`);
   }
+});
+
+test("a favourite team's story is never treated as the day's biggest news", async () => {
+  const { topStories } = await import('../lib/write');
+  // The team boost is 6.5x so her teams always appear. That is right for
+  // reserving a paragraph and wrong for deciding what the day is about: a Cubs
+  // facial fracture scored 34 against 9 for the President's UN speech, and the
+  // email built itself around the Cubs and a set of curiosities.
+  const ranked = [
+    { ...cluster(1, 'sports'), title: "Cubs' Bregman has facial fractures", score: 34 },
+    { ...cluster(2, 'usc'), title: 'USC names a backup quarterback', score: 20 },
+    { ...cluster(3, 'us'), title: 'Trump tells the UN he is confronting world threats', score: 9 },
+    { ...cluster(4, 'us'), title: 'Trump and Xi see tensions flare over trade', score: 8 },
+    { ...cluster(5, 'world'), title: 'Global oil price drops below $100 a barrel', score: 5 },
+    { ...cluster(6, 'science'), title: 'A new concrete mixture absorbs carbon', score: 1 },
+  ];
+  const top = topStories(ranked);
+  assert.ok(!top.some((c) => c.section === 'sports' || c.section === 'usc'), 'no sports in the day\'s news');
+  assert.deepEqual(top.map((c) => c.id), [3, 4, 5, 6], 'the actual news, in order');
+});
+
+test('two headlines about the same event do not take two slots', async () => {
+  const { topStories } = await import('../lib/write');
+  // Both of these ran, and between them crowded out the rest of the day.
+  const ranked = [
+    { ...cluster(1, 'us'), title: 'Trump Tells U.N. He Is Confronting World Threats and Putting America First', score: 9.1 },
+    { ...cluster(2, 'us'), title: "Trump's U.N. Speech Comes at a Time of Tumult", score: 9.0 },
+    { ...cluster(3, 'us'), title: 'Trump and Xi see tensions flare over AI, trade and Iran', score: 8 },
+    { ...cluster(4, 'world'), title: 'Global oil price drops below $100 a barrel', score: 5 },
+    { ...cluster(5, 'world'), title: 'The big threat has been climate change, now comes AI', score: 4 },
+    { ...cluster(6, 'science'), title: 'A new concrete mixture absorbs carbon', score: 1 },
+  ];
+  const ids = topStories(ranked).map((c) => c.id);
+  assert.ok(!ids.includes(2), `the second UN headline must not take a slot: ${ids}`);
+  assert.deepEqual(ids, [1, 3, 4, 5, 6]);
+});
+
+test('courtroom coverage is filtered like any other crime story', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  for (const t of [
+    "Lindsay Clancy's lawyer asks judge to investigate juror",
+    'Jury reaches a verdict in the fraud case',
+    'Defendant testifies for a second day',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
+  }
+});
+
+test('college league tables are not news', async () => {
+  const { isTrivia } = await import('../lib/select');
+  assert.ok(isTrivia('Princeton Is No Longer No. 1 in the U.S. News Rankings'));
+  assert.ok(isTrivia('The best colleges for 2026, ranked'));
+  assert.ok(!isTrivia('Princeton researchers publish a fusion result'));
 });

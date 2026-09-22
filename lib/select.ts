@@ -290,6 +290,10 @@ const TRIVIA = new RegExp(
     /\b(notes from an?|obsessive subculture|a day in the life|inside the world of|why i|what it'?s like to)\b/,
     // Lists and service journalism.
     /\b(\d+ (best|worst|things|ways|reasons)|here'?s where|ranked:|the best .{0,20} of \d{4})\b/,
+    // Annual league tables. "Princeton Is No Longer No. 1 in the U.S. News
+    // Rankings" is a listicle with a press release, not the day's news.
+    /\b(college|university|school|world|global|national) rankings?\b/,
+    /\bu\.?s\.? news rankings?\b|\bbest colleges\b|\bno\.? 1 in the\b/,
   ]
     .map((r) => r.source)
     .join('|'),

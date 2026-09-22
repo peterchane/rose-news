@@ -122,6 +122,9 @@ const VIOLENT_CRIME = new RegExp(
     // charges being filed, reduced or upheld is still a story about a crime,
     // which is the whole category Rose asked to be kept out.
     /\b(charges?|indict\w*|prosecutor\w*|prosecut(e|ed|ion)|convict(ed|ion)|sentenc(ed|ing)|plead(s|ed)? guilty|arraign\w*|felony|manslaughter)\b/,
+    // The courtroom itself. A juror inquiry in a murder trial is crime
+    // coverage however procedurally the headline words it.
+    /\b(jurors?|jury|verdicts?|mistrial|defendants?|on trial|murder trial|testifies|testimony|acquitt\w*|plea deal)\b/,
   ]
     .map((r) => r.source)
     .join('|'),
@@ -282,7 +285,7 @@ const DISTRESSING = new RegExp(
     // medical". Positive medical news — an approval, a cure, a breakthrough —
     // is handled by the exception below.
     /\b(cancer|tumou?r|leukemia|alzheimer|dementia|parkinson|als\b|diabetes|obesity|stroke|heart attack|cardiac)\b/,
-    /\b(outbreak|epidemic|pandemic|infection|infectious|virus|viral (spread|outbreak)|covid|influenza|measles|ebola|cholera|malaria|tuberculosis|hiv|aids\b|superbug|antibiotic resistance)\b/,
+    /\b(outbreak\w*|epidemic\w*|pandemic\w*|infect\w*|virus\w*|viral (spread|outbreak)|pathogens?|contagion|covid|influenza|measles|ebola|cholera|malaria|tuberculosis|hiv|aids\b|superbug|antibiotic resistance)\b/,
     /\b(disease|illness|syndrome|disorder|diagnosis|diagnosed|symptoms|contagious|quarantine|hospitali[sz]\w*|intensive care|icu\b)\b/,
     /\b(recall(ed|s)? (over|after|due to)|contaminat|food poisoning|tainted|overdose deaths)\b/,
     // Named pathogens, which the general disease words above all miss. A
