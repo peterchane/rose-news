@@ -41,17 +41,46 @@ function overlap(a: Set<string>, b: Set<string>): number {
 const SAME_STORY = 0.34;
 const MIN_SHARED = 2;
 
+/**
+ * A running story is not a repeat.
+ *
+ * Suppression removed the Trump-Xi summit on the day of the state dinner,
+ * because it had been mentioned on the two days before — and removed Iran's
+ * Hormuz offer the same way. What was left to lead the email was a watchdog
+ * report on ICE procurement.
+ *
+ * So the day's biggest stories survive suppression. The writer is already told
+ * to open with what changed rather than re-explain the background, which is the
+ * right treatment for a story Rose has been following.
+ */
+const STILL_THE_NEWS = 3;
+
+function stillTheNews(clusters: Cluster[]): Set<number> {
+  const ranked = [...clusters]
+    .filter((c) => c.section !== 'sports' && c.section !== 'usc' && c.section !== 'jewish')
+    .sort((a, b) => b.score - a.score);
+  if (ranked.length === 0 || ranked[0].score === ranked[ranked.length - 1].score) return new Set();
+  return new Set(ranked.slice(0, STILL_THE_NEWS).map((c) => c.id));
+}
+
 export function dropAlreadyCovered(
   clusters: Cluster[],
   previous: PreviousBrief | null,
 ): { kept: Cluster[]; dropped: Cluster[] } {
   if (!previous?.topics?.length) return { kept: clusters, dropped: [] };
 
+  const running = stillTheNews(clusters);
+
   const seen = previous.topics.map(tokens);
   const kept: Cluster[] = [];
   const dropped: Cluster[] = [];
 
   for (const c of clusters) {
+    // Still the day's news, so it stays — however familiar it looks.
+    if (running.has(c.id)) {
+      kept.push(c);
+      continue;
+    }
     const t = tokens(c.title);
     let shared = 0;
     const isRepeat = seen.some((s) => {

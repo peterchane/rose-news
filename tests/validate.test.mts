@@ -766,3 +766,46 @@ test('wholesale missing citations earn a re-roll, not a shrug', async () => {
   assert.ok(hit, problems.join(' | '));
   assert.ok(isWorthRetry(hit!) && !isFatal(hit!));
 });
+
+test('a running story survives repeat suppression', async () => {
+  const { dropAlreadyCovered } = await import('../lib/repeat');
+  // The Trump-Xi summit was suppressed on the day of the state dinner because
+  // it had been mentioned the two days before, and a watchdog report on ICE
+  // procurement led the email instead.
+  const clusters = [
+    { ...cluster(1, 'us'), title: 'As Trump hosts state dinner honoring Xi, see the menu', score: 10.4 },
+    { ...cluster(2, 'world'), title: 'Iran offers to reopen the Strait of Hormuz within 7 days', score: 8.2 },
+    { ...cluster(3, 'us'), title: 'Supreme Court lets administration use SAVE database', score: 15.7 },
+    { ...cluster(4, 'us'), title: 'ICE wasted millions in a rapid push to expand detention', score: 4.9 },
+  ];
+  const previous = {
+    subject: 'x',
+    topics: [
+      'Trump hosts Xi for a state dinner at the White House',
+      'Iran offers to reopen the Strait of Hormuz',
+      'ICE wasted millions in a rapid push to expand detention capacity',
+    ],
+  };
+  const { kept, dropped } = dropAlreadyCovered(clusters, previous);
+  const keptTitles = kept.map((c) => c.title);
+  assert.ok(keptTitles.some((t) => /Xi/.test(t)), 'the summit is still the news');
+  assert.ok(keptTitles.some((t) => /Hormuz/.test(t)), 'so is Iran');
+  assert.ok(dropped.some((c) => /ICE/.test(c.title)), 'a genuine repeat still goes');
+});
+
+test('nothing is exempted on a day with no standout story', async () => {
+  const { dropAlreadyCovered } = await import('../lib/repeat');
+  // Distinct subjects, identical scores: the exemption must not kick in, so
+  // the one genuine repeat is dropped and the others are untouched.
+  const flat = [
+    { ...cluster(1, 'us'), title: 'Senate passes the spending bill after a long debate', score: 1 },
+    { ...cluster(2, 'us'), title: 'Oil prices climb above ninety dollars a barrel', score: 1 },
+    { ...cluster(3, 'us'), title: 'Astronomers confirm thousands of distant planets', score: 1 },
+  ];
+  const { kept, dropped } = dropAlreadyCovered(flat, {
+    subject: 'x',
+    topics: ['Senate passes the spending bill after a long debate'],
+  });
+  assert.equal(dropped.length, 1, 'the repeat is dropped, with no exemption');
+  assert.equal(kept.length, 2);
+});
