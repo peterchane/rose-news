@@ -112,3 +112,31 @@ test('innocent words containing a blocked stem are not filtered', () => {
   const blocked = INNOCENT_LOOKALIKES.filter((t) => !isReportableNews(t, 'https://example.com/news/x'));
   assert.deepEqual(blocked, [], `stems are over-matching:\n${blocked.join('\n')}`);
 });
+
+/**
+ * USC now arrives via Google News, because the Daily Trojan serves Cloudflare
+ * bot protection to any server that asks — a 403 on the whole site, not just
+ * the feed. An aggregator brings beat-blog filler alongside real coverage.
+ */
+test('aggregator filler is dropped, real USC news is not', async () => {
+  const { isReportableNews, stripOutletSuffix } = await import('../lib/ingest');
+  for (const t of [
+    'Football vs USC Trojans on 10/28/2000 - Box Score',
+    'Louisiana Ragin Cajuns vs. USC Trojans: Full Highlights',
+    'Tale of the Tape for Oregon Ducks vs USC Trojans',
+    'Oregon vs. USC Football Prediction & Odds - Sept. 26',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://news.google.com/x'), `should drop: ${t}`);
+  }
+  for (const t of [
+    'Laura Abrams installed as dean of USC social work school',
+    "USC's empty seats show fans still haven't bought in on Lincoln Riley",
+    'Risks faced by teens online vary by platform, USC study shows',
+  ]) {
+    assert.ok(isReportableNews(t, 'https://news.google.com/x'), `should keep: ${t}`);
+  }
+
+  // The outlet is credited from the feed's own source tag, not left in the title.
+  assert.equal(stripOutletSuffix('Oregon adds a twist - Sports Illustrated', 'Sports Illustrated'), 'Oregon adds a twist');
+  assert.equal(stripOutletSuffix('A headline with - a dash in it', null), 'A headline with - a dash in it');
+});

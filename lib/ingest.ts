@@ -109,7 +109,7 @@ const SERVICE_JOURNALISM = new RegExp(
 );
 
 const EVERGREEN_TITLE =
-  /\b(power rankings|fantasy (football|baseball|basketball|hockey)|do not draft|draft guide|mock draft|start[' ]?em|sit[' ]?em|way-too-early|best bets|odds, picks|predictions? for|everything to know|what to know about|how to watch|takeaways from|winners and losers|grades?:|ranking every|every team'?s?|fates? of all|all \d+ (mlb|nfl|nba|nhl|college) teams|since the trade deadline|season preview|what we learned|reshapes|what it means for|impact of the|revisiting|looking back at|why the \w+ (are|have|is)|the case for|the case against|villain|narrative|storyline|proves? that|shows? why|here'?s why|columnist|on this day in|this day in history|years ago today|from the archive|throwback|high-?yield savings|annual percentage yield|our picks|editors'? picks|buying guide|we tested|reviewed:|deals? of the (day|week)|what to buy|worth buying|we want to (hear|answer|know)|tell us (about|what|your)|share your (story|stories|questions?|photos?)|do you have (questions?|a story)|send us your|ask us anything|submit your|reader (questions?|mailbag)|your questions,? answered|we asked you)\b/i;
+  /\b(power rankings|fantasy (football|baseball|basketball|hockey)|do not draft|draft guide|mock draft|start[' ]?em|sit[' ]?em|way-too-early|best bets|odds, picks|predictions? for|everything to know|what to know about|how to watch|takeaways from|winners and losers|grades?:|ranking every|every team'?s?|fates? of all|all \d+ (mlb|nfl|nba|nhl|college) teams|since the trade deadline|season preview|what we learned|reshapes|what it means for|impact of the|revisiting|looking back at|why the \w+ (are|have|is)|the case for|the case against|villain|narrative|storyline|proves? that|shows? why|here'?s why|columnist|on this day in|this day in history|years ago today|from the archive|throwback|box score|full highlights?|tale of the tape|injury report|(vs\.?|versus)[^.]{0,40}(predict\w*|preview|picks?|odds|betting)|(predict\w*|preview|picks?|odds|betting)[^.]{0,40}(vs\.?|versus)|staff predicts|our predictions?|prediction[^.]{0,25}odds|odds[^.]{0,25}prediction|against the spread|high-?yield savings|annual percentage yield|our picks|editors'? picks|buying guide|we tested|reviewed:|deals? of the (day|week)|what to buy|worth buying|we want to (hear|answer|know)|tell us (about|what|your)|share your (story|stories|questions?|photos?)|do you have (questions?|a story)|send us your|ask us anything|submit your|reader (questions?|mailbag)|your questions,? answered|we asked you)\b/i;
 
 /**
  * Individual violent crime — school shootings, family murders, stabbings,
@@ -427,6 +427,26 @@ export function isDistressing(title: string): boolean {
   return DISTRESSING.test(title);
 }
 
+/**
+ * Google News aggregates, so every item is really somebody else's story: the
+ * outlet lives in a <source> tag and is repeated as a " - Outlet" suffix on the
+ * title. Crediting "Google News" for all of it would be wrong and would also
+ * defeat the per-outlet cap, which exists to keep one newsroom from filling a
+ * section.
+ */
+function googleNewsSource(item: unknown): string | null {
+  const raw = (item as Record<string, unknown>)?.source;
+  const name = typeof raw === 'string' ? raw : (raw as Record<string, unknown>)?.['#text'];
+  return typeof name === 'string' && name.trim() ? name.trim() : null;
+}
+
+/** "Oregon vs USC Prediction - College Football News" -> the headline alone. */
+export function stripOutletSuffix(title: string, source: string | null): string {
+  if (!source) return title;
+  const suffix = ` - ${source}`;
+  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;
+}
+
 export function isReportableNews(
   title: string,
   link: string,
@@ -531,7 +551,8 @@ export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()
   const articles: Article[] = [];
   for (const item of items) {
     position++;
-    const title = stripHtml(text((item as any).title));
+    const outlet = googleNewsSource(item);
+    const title = stripOutletSuffix(stripHtml(text((item as any).title)), outlet);
     const link = cleanUrl(extractLink(item as any));
     const publishedAt = parseDate(item as any);
 
@@ -556,7 +577,7 @@ export function parseFeedItems(xml: string, feed: Feed, now: number = Date.now()
     articles.push({
       title,
       link,
-      source: feed.source,
+      source: googleNewsSource(item) ?? feed.source,
       section: feed.section,
       weight: feed.weight,
       publishedAt,
