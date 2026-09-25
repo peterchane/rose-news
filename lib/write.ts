@@ -108,7 +108,12 @@ export function splitPivots(paragraphs: string[], max = MAX_PARAGRAPHS): string[
  * A repair, never a rejection: paragraphs are only dropped while enough remain
  * to still be a brief.
  */
-export function dropUncited(paragraphs: string[], min = 5): string[] {
+/**
+ * The floor was five, which meant a draft with five uncited paragraphs out of
+ * eight could not be repaired at all — and "only 3 stories cited" is fatal, so
+ * Rose got nothing. Three good paragraphs is a thin brief; it is still a brief.
+ */
+export function dropUncited(paragraphs: string[], min = 3): string[] {
   // A non-global copy on purpose: `.test` on the shared global CITATION_RE
   // advances its lastIndex and silently breaks the next caller's scan.
   const cited = new RegExp(CITATION_RE.source);
@@ -456,6 +461,7 @@ export function problemText(problem: string): string {
 export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const problems: string[] = [];
   /** Unsendable: fabricated links, raw URLs, list formatting, wrong shape. */
+  let uncited = 0;
   const fatal = (m: string) => problems.push(FATAL + m);
   /** Worth another attempt, but shipped as-is if the attempts run out. */
   const retry = (m: string) => problems.push(RETRY + m);
@@ -531,6 +537,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     }
 
     if (linkCount === 0) {
+      uncited++;
       nit(`Paragraph ${n} has no citations. Every paragraph needs 1-3.`);
     }
     if (linkCount > 4) {
@@ -550,8 +557,12 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const allCited = new Set(
     brief.paragraphs.flatMap((p) => [...p.matchAll(CITATION_RE)].map((m) => Number(m[2]))),
   );
-  if (allCited.size < 5) {
+  if (allCited.size < 3) {
+    // Below three there is no email worth sending.
     fatal(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
+  } else if (allCited.size < 5) {
+    // Thin, so try again — but send it rather than send nothing.
+    retry(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
   }
 
   // Sports gets a quota but nothing otherwise forces the writer to spend it,
@@ -610,6 +621,14 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
       );
     }
   });
+
+  // One stray uncited paragraph is a nit; half the brief is a bad draft.
+  if (uncited >= 2) {
+    retry(
+      `${uncited} paragraphs cite nothing. Every paragraph needs 1-3 citations ` +
+        'in the form [phrase](#ID), using the candidate numbers.',
+    );
+  }
 
   const missed = topStories(clusters).filter((c) => !allCited.has(c.id));
   if (missed.length) {

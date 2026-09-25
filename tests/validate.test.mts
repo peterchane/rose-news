@@ -727,3 +727,42 @@ test('college league tables are not news', async () => {
   assert.ok(isTrivia('The best colleges for 2026, ranked'));
   assert.ok(!isTrivia('Princeton researchers publish a fusion result'));
 });
+
+test("today's failure: a mostly-uncited draft still produces an email", async () => {
+  const { dropUncited, isFatal, validateBrief: v } = await import('../lib/write');
+  // The exact shape that lost an edition: eight paragraphs, five of them
+  // citing nothing. The repair floor was five, so nothing could be dropped,
+  // and "only 3 distinct stories cited" was fatal. Rose got no email at all.
+  const bad = [
+    para(1, 2), para(3, 4), para(5, 6),
+    'Officials described the meeting as productive and said talks would continue next week.',
+    'Analysts remain divided about what happens next in the months ahead.',
+    'The announcement drew responses from several corners of the industry today.',
+    'Observers noted the timing was unusual given the circumstances this week.',
+    'Further details are expected to emerge over the coming days and weeks.',
+  ];
+  const repaired = dropUncited(bad);
+  assert.equal(repaired.length, 3, 'the uncited paragraphs are dropped now');
+
+  const problems = v({ ...ok(), paragraphs: repaired }, CLUSTERS);
+  assert.ok(!problems.some(isFatal), `must be sendable: ${problems.join(' | ')}`);
+});
+
+test('a genuinely empty draft is still refused', async () => {
+  const { isFatal } = await import('../lib/write');
+  // Below three cited stories there is no email worth sending.
+  const thin = { ...ok(), paragraphs: [para(1, 1), para(2, 2)] };
+  assert.ok(validateBrief(thin, CLUSTERS).some(isFatal), 'two stories is not a brief');
+});
+
+test('wholesale missing citations earn a re-roll, not a shrug', async () => {
+  const { isWorthRetry, isFatal } = await import('../lib/write');
+  const sloppy = {
+    ...ok(),
+    paragraphs: [para(9, 10), para(1, 2), para(3, 4), 'No citation here at all.', 'Nor in this one.'],
+  };
+  const problems = validateBrief(sloppy, CLUSTERS);
+  const hit = problems.find((p) => /cite nothing/.test(p));
+  assert.ok(hit, problems.join(' | '));
+  assert.ok(isWorthRetry(hit!) && !isFatal(hit!));
+});
