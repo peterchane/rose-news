@@ -99,7 +99,7 @@ test('a validation failure is fed back to the next attempt', async () => {
   const out = await writeBrief(clusters, null, draft);
   assert.equal(out.subject, dailySubject());
   assert.match(prompts[1], /rejected for these reasons/);
-  assert.match(prompts[1], /5-9 paragraphs/);
+  assert.match(prompts[1], /3-9 paragraphs/);
 });
 
 test('an unparseable response tells the next attempt what shape to return', async () => {

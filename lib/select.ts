@@ -108,7 +108,11 @@ function scoreCluster(articles: Article[]): number {
   const bestWeight = Math.max(...articles.map((a) => a.weight));
   const newest = Math.min(...articles.map((a) => hoursOld(a.publishedAt)));
   // Full credit for the last 6 hours, decaying to ~0.4 at 30 hours.
-  const freshness = Math.max(0.4, 1 - Math.max(0, newest - 6) / 40);
+  // Full credit for the last 6 hours, decaying with age. A story only one
+  // outlet ran, a day and a half ago, is padding — it decays to near nothing
+  // rather than bottoming out high enough to fill a slot on a quiet day.
+  const floor = distinctSources >= 2 ? 0.4 : 0.08;
+  const freshness = Math.max(floor, 1 - Math.max(0, newest - 6) / 40);
   const placement = placementBoost(Math.min(...articles.map((a) => a.rank ?? 99)));
   return corroboration * bestWeight * freshness * placement;
 }

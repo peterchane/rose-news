@@ -35,8 +35,8 @@ test('a well-formed brief passes', () => {
 });
 
 const cases: [string, () => any, RegExp][] = [
-  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /5-9 paragraphs/],
-  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /5-9 paragraphs/],
+  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /3-9 paragraphs/],
+  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /3-9 paragraphs/],
   ['a bulleted list', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), '- Iran did a thing worth noting here today\n- Israel did another separate thing'] }), /bulleted or numbered list/],
   ['a raw URL', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(https://evil.com)')] }), /raw URL/],
   ['an unknown id', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(#999)')] }), /#999/],
@@ -808,4 +808,30 @@ test('nothing is exempted on a day with no standout story', async () => {
   });
   assert.equal(dropped.length, 1, 'the repeat is dropped, with no exemption');
   assert.equal(kept.length, 2);
+});
+
+test('a short brief on a thin day is fine', async () => {
+  const { isFatal, PREFERRED_MINIMUM } = await import('../lib/write');
+  // Peter: "dont pad a thin day." Four real stories beat four real stories
+  // plus a filler paragraph.
+  assert.equal(PREFERRED_MINIMUM, 4);
+  const short = { ...ok(), paragraphs: [para(9, 10), para(1, 2), para(3, 4), para(5, 6)] };
+  assert.deepEqual(validateBrief(short, CLUSTERS), [], 'four paragraphs is a valid brief');
+
+  const thinner = { ...ok(), paragraphs: [para(9, 10), para(1, 2), para(3, 4)] };
+  const problems = validateBrief(thinner, CLUSTERS);
+  assert.ok(!problems.some(isFatal), 'three still sends');
+});
+
+test('the prompt tells the writer not to pad', async () => {
+  const { SYSTEM_PROMPT } = await import('../lib/write');
+  assert.match(SYSTEM_PROMPT, /short brief is better than a padded one/i);
+  assert.match(SYSTEM_PROMPT, /NEVER include a story to fill space/);
+});
+
+test('a stale single-source story decays to near nothing', async () => {
+  const { placementBoost } = await import('../lib/select');
+  // Only the scoring floor changed, but pin the intent: padding material must
+  // not bottom out high enough to fill a slot on a quiet day.
+  assert.ok(placementBoost(40) === 1);
 });

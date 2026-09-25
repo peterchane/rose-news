@@ -40,7 +40,7 @@ export const briefSchema = z.object({
   paragraphs: z
     .array(z.string())
     .describe(
-      'The body: 5 to 9 paragraphs of flowing prose, each containing inline [phrase](#id) citations.',
+      'The body: 3 to 9 paragraphs of flowing prose, each containing inline [phrase](#id) citations. Write only as many as there is real news for.',
     ),
 });
 
@@ -59,6 +59,12 @@ export type Brief = RawBrief & { subject: string };
 export const PIVOT_WORDS = /(?:^|(?<=[.!?]\s))(Meanwhile|Separately|Elsewhere|In other news)[,]?\s+/g;
 
 export const MAX_PARAGRAPHS = 9;
+/**
+ * Below this the brief looks thin, but a thin day IS thin. Peter: "dont pad a
+ * thin day." So this is a nudge, not a requirement — only a count below three
+ * or above twelve actually blocks a send.
+ */
+export const PREFERRED_MINIMUM = 4;
 
 export function splitPivots(paragraphs: string[], max = MAX_PARAGRAPHS): string[] {
   const out: string[] = [];
@@ -228,7 +234,8 @@ ORDER:
 Never announce the structure ("now to the news"). Just move between paragraphs.
 
 FORM:
-- 5-9 paragraphs, 40-80 words each. No headers or labels.
+- 3-9 paragraphs, 40-80 words each. No headers or labels.
+- Write only as many paragraphs as there is real news for. A short brief is better than a padded one. NEVER include a story to fill space — if today has four stories worth her time, write four.
 - One topic per paragraph. If you write "Meanwhile" or "Separately" mid-paragraph, break there instead.
 - Sentences 12-20 words. One idea each.
 - Never a bulleted or numbered list.
@@ -481,11 +488,11 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const sectionById = new Map(clusters.map((c) => [c.id, c.section]));
 
   const n = brief.paragraphs.length;
-  if (n < 5 || n > MAX_PARAGRAPHS) {
+  if (n < PREFERRED_MINIMUM || n > MAX_PARAGRAPHS) {
     // Ten paragraphs is a slightly long email; zero is no email at all. Only
     // the second is worth losing the day over.
     const wildlyWrong = n < 3 || n > 12;
-    (wildlyWrong ? fatal : nit)(`Need 5-9 paragraphs, got ${n}.`);
+    (wildlyWrong ? fatal : nit)(`Need 3-9 paragraphs, got ${n}.`);
   }
 
   brief.paragraphs.forEach((para, i) => {
@@ -798,7 +805,7 @@ export async function writeBrief(
       );
       lastProblems = [
         'Your last response could not be parsed. Return valid JSON matching the schema: ' +
-          'a "paragraphs" array of 5 to 9 plain strings. ' +
+          'a "paragraphs" array of 3 to 9 plain strings. ' +
           'No markdown fences, no nested objects, no extra keys.',
       ];
     }
