@@ -58,7 +58,7 @@ export const POSTSEASON_EVENT =
  * title. Deliberately excludes "Cubs 4, Reds 2" — she doesn't want box scores.
  */
 export const NOTABLE_EVENT =
-  /\b(trade[ds]?|trading|acquir\w*|sign(s|ed|ing)?|waiv\w*|releas\w*|call(s|ed)? up|streak|sweep|swept|clinch\w*|playoff|postseason|world series|championship|title|no-hitter|perfect game|record|fires?|fired|hires?|hired|extension|contract|out for the season|injur\w*|suspend\w*|retires?|retirement|debut)\b/i;
+  /\b(trade[ds]?|trading|acquir\w*|sign(s|ed|ing)?|waiv\w*|releas\w*|call(s|ed)? up|streak|sweep|swept|clinch\w*|playoff|postseason|world series|championship|title|no-hitter|perfect game|record|fires?|fired|hires?|hired|extension|contract|out for the season|injur\w*|suspend\w*|retires?|retirement|debut|upsets?|upset\w*|undefeated|unbeaten|ranked|top 25|rivalry|bowl game|conference (title|championship)|rivalry game|knocks? off)\b/i;
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

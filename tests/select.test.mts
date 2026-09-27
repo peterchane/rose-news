@@ -426,3 +426,22 @@ test('a front-page lead outranks a trivial story two outlets happened to run', (
   );
   assert.match(clusters[0].title, /Iran/, `lead should win: ${clusters.map((c) => c.title).join(' | ')}`);
 });
+
+test('a meaningful college result counts, a routine one does not', async () => {
+  const { parseTeamRules, NOTABLE_EVENT, buildTeamPattern } = await import('../lib/teams');
+  const { readFileSync } = await import('node:fs');
+  // Peter: "SMU football ok b/c she cares about that." In college football the
+  // result IS the news when it means something — an upset, a ranked opponent,
+  // an unbeaten run. "SMU upsets a ranked rival" was being dropped as a score.
+  const rules = parseTeamRules(readFileSync('teams.txt', 'utf8'));
+  const pat = buildTeamPattern(rules.notableOnly)!;
+  const through = (t: string) => pat.test(t) && NOTABLE_EVENT.test(t);
+
+  assert.ok(through('SMU upsets a ranked rival to stay unbeaten'));
+  assert.ok(through('SMU knocks off No. 8 Clemson'));
+  assert.ok(through('Michigan stays undefeated with a road win'));
+  assert.ok(through('Cubs clinch a playoff berth'));
+
+  assert.ok(!through('SMU wins 31-17 in a routine Saturday'), 'still not a box score');
+  assert.ok(!through('Cubs beat the Reds 4-2 on Tuesday'), 'nor is a June win');
+});
