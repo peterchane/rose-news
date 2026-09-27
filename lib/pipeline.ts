@@ -6,7 +6,7 @@ import { renderBrief, type RenderedBrief } from './render';
 import { todaysWeatherNote } from './weather';
 import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
-import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT } from './teams';
+import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT } from './teams';
 import { todaysHolidayNote } from './jewish';
 import { todayPT } from './schedule';
 import { fetchCredits, lowBalanceWarning } from './credits';
@@ -29,7 +29,7 @@ export async function buildBrief(): Promise<PipelineResult> {
   console.log(`[feeds] ${config.feeds.length} sources from ${config.origin}`);
 
   const { articles, failures } = await ingest(config.feeds);
-  const clusters = selectClusters(articles, config.quotas, TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT);
+  const clusters = selectClusters(articles, config.quotas, TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT);
 
   if (clusters.length < MIN_CLUSTERS) {
     throw new ThinNewsDayError(

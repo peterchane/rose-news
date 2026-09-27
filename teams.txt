@@ -9,6 +9,10 @@
 # By default you only hear about a team when something notable happens — a
 # trade, a signing, a streak, an injury, a playoff berth. A single game result
 # is not news. Prefix a team with "+" if you DO want every game.
+#
+# Prefix with "!" for postseason only: a team she doesn't follow but whose
+# October is unavoidable in Los Angeles. Playoffs, the World Series and
+# elimination get through; a trade or a win in June does not.
 
 # ---- USC football ----
 # The one she follows closely.
@@ -24,3 +28,7 @@ SMU
 Mustangs
 Michigan
 Wolverines
+
+# ---- Los Angeles, October only ----
+# Not a team she follows, but a Dodgers playoff run is the whole city.
+!Dodgers

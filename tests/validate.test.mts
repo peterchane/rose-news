@@ -878,3 +878,29 @@ test('the LA teams she does not follow never ride the local boost', async () => 
     assert.ok(!isLocalStory(t), `must not be boosted: ${t}`);
   }
 });
+
+test('a postseason-only team gets October and nothing else', async () => {
+  const { parseTeamRules, buildTeamPattern, POSTSEASON_EVENT } = await import('../lib/teams');
+  // Peter: "dodgers are in playoffs so that's ok for playoffs." Not a team she
+  // follows, but a Dodgers run is the whole city.
+  const rules = parseTeamRules('USC\nCubs\n!Dodgers\n+Trojans\n');
+  assert.deepEqual(rules.postseasonOnly, ['Dodgers']);
+  assert.deepEqual(rules.always, ['Trojans']);
+  assert.deepEqual(rules.notableOnly, ['USC', 'Cubs']);
+
+  const pat = buildTeamPattern(rules.postseasonOnly)!;
+  const through = (t: string) => pat.test(t) && POSTSEASON_EVENT.test(t);
+  assert.ok(through('Dodgers clinch a playoff spot'));
+  assert.ok(through('Dodgers advance to the NLCS'));
+  assert.ok(!through('Dodgers trade for a reliever at the deadline'), 'a trade is not October');
+  assert.ok(!through('Dodgers beat the Rockies 5-2 on Tuesday'), 'nor is a June win');
+});
+
+test('the real teams.txt puts the Dodgers on postseason only', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { parseTeamRules } = await import('../lib/teams');
+  const rules = parseTeamRules(readFileSync('teams.txt', 'utf8'));
+  assert.ok(rules.postseasonOnly.includes('Dodgers'));
+  assert.ok(!rules.notableOnly.includes('Dodgers'), 'never as a followed team');
+  assert.ok(rules.notableOnly.includes('USC') || rules.always.includes('USC'));
+});

@@ -423,6 +423,8 @@ export function selectClusters(
   teamPattern: RegExp | null = null,
   notableOnlyPattern: RegExp | null = null,
   notableEvent: RegExp | null = null,
+  postseasonOnlyPattern: RegExp | null = null,
+  postseasonEvent: RegExp | null = null,
 ): Cluster[] {
   // Cluster across all sections. A story that spans world and business is the
   // strongest corroboration signal there is, and per-section clustering would
@@ -510,11 +512,16 @@ export function selectClusters(
   // Sports is only worth a slot when it's about a team Rose follows. Without
   // this the quota gets filled with whatever was left — a Jets practice injury,
   // a team she has no stake in — purely because the section had room.
-  const anyTeams = Boolean(teamPattern || notableOnlyPattern);
+  const anyTeams = Boolean(teamPattern || notableOnlyPattern || postseasonOnlyPattern);
   const relevant = mainstreamOnly.filter((c) => {
     if (c.section !== 'sports' || !anyTeams) return true;
     const hay = `${c.title} ${c.blurb}`;
-    return Boolean(teamPattern?.test(hay) || notableOnlyPattern?.test(hay));
+    if (teamPattern?.test(hay) || notableOnlyPattern?.test(hay)) return true;
+    // A team she doesn't follow, whose October is unavoidable anyway. Only the
+    // postseason gets through — not a trade, not a win in June.
+    return Boolean(
+      postseasonOnlyPattern?.test(hay) && postseasonEvent?.test(hay),
+    );
   });
 
   // Fill each section's quota by score, but cap any one outlet's share so a

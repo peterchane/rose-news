@@ -19,25 +19,39 @@ export type TeamRules = {
    * news, even for a team she follows.
    */
   notableOnly: string[];
+  /**
+   * Postseason only, marked with a leading `!`. For a team Rose doesn't
+   * follow but whose October run is unavoidable in Los Angeles — Peter, on the
+   * Dodgers: "dodgers are in playoffs so that's ok for playoffs." A trade or a
+   * regular-season win still isn't news.
+   */
+  postseasonOnly: string[];
 };
 
 export function parseTeams(text: string): string[] {
-  return parseTeamRules(text).always.concat(parseTeamRules(text).notableOnly);
+  const r = parseTeamRules(text);
+  return [...r.always, ...r.notableOnly, ...r.postseasonOnly];
 }
 
 export function parseTeamRules(text: string): TeamRules {
   const always: string[] = [];
   const notableOnly: string[] = [];
+  const postseasonOnly: string[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
-    // `+` opts a team into every-game coverage; everything else is
-    // notable-only, because "Dodgers won last night" is not news.
+    // `+` is every game, `!` is October only, and the default is notable-only,
+    // because "Dodgers won last night" is not news.
     if (line.startsWith('+')) always.push(line.slice(1).trim());
-    else notableOnly.push(line.replace(/^!/, '').trim());
+    else if (line.startsWith('!')) postseasonOnly.push(line.slice(1).trim());
+    else notableOnly.push(line.trim());
   }
-  return { always, notableOnly };
+  return { always, notableOnly, postseasonOnly };
 }
+
+/** October, and only October. Narrower than NOTABLE_EVENT on purpose. */
+export const POSTSEASON_EVENT =
+  /\b(playoffs?|postseason|world series|nlds|nlcs|alds|alcs|wild ?card|division series|pennant|clinch\w*|elimination|eliminated|game \d+|series lead)\b/i;
 
 /**
  * A result worth telling Rose about: a trade, a signing, a streak, a sweep, a
@@ -63,12 +77,13 @@ function load(): TeamRules {
     return parseTeamRules(readFileSync(join(process.cwd(), 'teams.txt'), 'utf8'));
   } catch {
     console.warn('[teams] could not read teams.txt; no team preference applied');
-    return { always: [], notableOnly: [] };
+    return { always: [], notableOnly: [], postseasonOnly: [] };
   }
 }
 
 const RULES = load();
 
-export const TEAMS = [...RULES.always, ...RULES.notableOnly];
+export const TEAMS = [...RULES.always, ...RULES.notableOnly, ...RULES.postseasonOnly];
 export const TEAM_PATTERN = buildTeamPattern(RULES.always);
 export const NOTABLE_ONLY_PATTERN = buildTeamPattern(RULES.notableOnly);
+export const POSTSEASON_ONLY_PATTERN = buildTeamPattern(RULES.postseasonOnly);

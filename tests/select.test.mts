@@ -224,11 +224,20 @@ test('teams.txt parses and covers what Peter asked for', async () => {
     assert.ok(p.test(t), `should match: ${t}`);
   }
   // Teams she explicitly does not follow.
-  for (const t of ['Yankees beat Red Sox', 'Dodgers win in extras', 'Lakers trade guard',
+  for (const t of ['Yankees beat Red Sox', 'Lakers trade guard',
                    'Rams sign veteran', 'Chargers cut receiver', 'Clippers fall short',
                    'Chicago Bears sign QB']) {
     assert.ok(!p.test(t), `should NOT match: ${t}`);
   }
+
+  // The Dodgers are configured, but only for October — Peter: "dodgers are in
+  // playoffs so that's ok for playoffs." Matching the name is not enough.
+  const { parseTeamRules, POSTSEASON_EVENT } = await import('../lib/teams');
+  const rules = parseTeamRules(readFileSync('teams.txt', 'utf8'));
+  assert.deepEqual(rules.postseasonOnly, ['Dodgers']);
+  assert.ok(!buildTeamPattern(rules.notableOnly)?.test('Dodgers win in extras'), 'not a followed team');
+  assert.ok(!POSTSEASON_EVENT.test('Dodgers win in extras'), 'a regular-season win is not October');
+  assert.ok(POSTSEASON_EVENT.test('Dodgers clinch a playoff spot'));
 });
 
 test('war is demoted unless broadly covered, and drops out of the quota', () => {
