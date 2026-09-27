@@ -366,15 +366,31 @@ test('ordinary uses of those words survive', () => {
   }
 });
 
-test('drops wildfire and natural-disaster news', () => {
+test('drops wildfire news outright', () => {
+  // Fire stays absolute. Storms and quakes are gated on corroboration in
+  // lib/select.ts instead — see the weather tests in validate.test.mts.
   for (const t of [
     'Wildfire forces evacuations across rural Idaho',
     'Palisades brush fire grows to 3,000 acres',
     'Crews reach 40% containment on the forest fire',
     'Evacuation order issued as flames near the town',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
+  }
+});
+
+test('a storm reaches selection, but its casualties never do', () => {
+  for (const t of [
     'Hurricane strengthens as it nears the Gulf coast',
     'Earthquake rattles northern California',
     'Flooding closes highways across the Midwest',
+  ]) {
+    assert.ok(isReportableNews(t, 'https://example.com/news/x'), `should reach selection: ${t}`);
+  }
+  for (const t of [
+    'Hurricane kills at least twelve in the Gulf',
+    'Earthquake death toll rises to 200',
+    'Two missing after floodwaters swept a car away',
   ]) {
     assert.ok(!isReportableNews(t, 'https://example.com/news/x'), `should drop: ${t}`);
   }

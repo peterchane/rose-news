@@ -1,4 +1,4 @@
-import { isDrugOrMentalHealth, type Article } from './ingest';
+import { isDrugOrMentalHealth, isWeatherEvent, type Article } from './ingest';
 import { SECTION_ORDER, type Section } from './feeds';
 
 /**
@@ -266,7 +266,10 @@ function warPenalty(title: string, sources: number): number {
 export const MAINSTREAM_SOURCES = 3;
 
 export function isMainstreamEnough(title: string, sources: number): boolean {
-  return !isDrugOrMentalHealth(title) || sources >= MAINSTREAM_SOURCES;
+  // Weather joins drugs and mental health here: a storm several newsrooms are
+  // leading with is national news; a regional flood warning is not.
+  const gated = isDrugOrMentalHealth(title) || isWeatherEvent(title);
+  return !gated || sources >= MAINSTREAM_SOURCES;
 }
 
 /**

@@ -904,3 +904,32 @@ test('the real teams.txt puts the Dodgers on postseason only', async () => {
   assert.ok(!rules.notableOnly.includes('Dodgers'), 'never as a followed team');
   assert.ok(rules.notableOnly.includes('USC') || rules.always.includes('USC'));
 });
+
+test('a big storm is national news; a local one is not', async () => {
+  const { isReportableNews, isWeatherEvent } = await import('../lib/ingest');
+  const { isMainstreamEnough, MAINSTREAM_SOURCES } = await import('../lib/select');
+  // Peter banned disasters, then: "Noreaster is big news and should be there
+  // b/c its national news." Both hold — the gate is corroboration, same as war.
+  for (const t of [
+    "Roads flood in New Jersey as the first signs of a nor'easter arrive",
+    'Hurricane makes landfall in Florida',
+    'Tornado outbreak sweeps the Midwest',
+  ]) {
+    assert.ok(isWeatherEvent(t), `should be gated: ${t}`);
+    assert.ok(isReportableNews(t, 'https://e.com/n/x'), `should survive ingest: ${t}`);
+    assert.ok(!isMainstreamEnough(t, 1), 'one outlet is not national');
+    assert.ok(isMainstreamEnough(t, MAINSTREAM_SOURCES), 'three outlets is');
+  }
+});
+
+test('casualties and fire stay blocked, storm or no storm', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  // The storm can be news; the death toll is not what she gets.
+  for (const t of [
+    "One dead as nor'easter storm pummels New York and New Jersey",
+    'Ross Fire still burning, with 90,000 acres scorched',
+    'Three drowned as floodwaters rose overnight',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://e.com/n/x'), `should stay blocked: ${t}`);
+  }
+});

@@ -348,7 +348,7 @@ const DISTRESSING = new RegExp(
     // Not a bare `evacuat` — that also matches conflict reporting like
     // "Israel strikes Lebanon after evacuation warning".
     /\b(evacuation order|containment|acres? burned|burn scar|fire season|fire crews)\b/,
-    /\b(hurricane|tornado|typhoon|cyclone|earthquake|tsunami|landslide|mudslide|flooding|floods?|volcano|erupt(s|ed|ion))\b/,
+
   ]
     .map((r) => r.source)
     .join('|'),
@@ -409,6 +409,32 @@ const DRUGS_OR_MENTAL_HEALTH = new RegExp(
  * True when a story is about drugs or mental health, and therefore only
  * eligible if the wider press is carrying it too.
  */
+/**
+ * Big weather, gated the way war already is.
+ *
+ * Peter banned disasters, then: "Noreaster is big news and should be there b/c
+ * its national news." Both are right — a storm three newsrooms are leading with
+ * is national news, and a regional flood warning is not. So this is not an
+ * absolute block; lib/select.ts requires the same corroboration war needs.
+ *
+ * Fire stays absolute, and so do the death and casualty words: "One dead as
+ * nor'easter pummels New York" is still blocked on the death, not the storm.
+ */
+const WEATHER_EVENT = new RegExp(
+  [
+    /\b(hurricane|nor'?easter|typhoon|cyclone|tornado(es)?|blizzard|ice storm)\b/,
+    /\b(earthquake|tsunami|landslide|mudslide|volcano|erupt(s|ed|ion))\b/,
+    /\b(flood\w*|storm surge|record rainfall|snowfall|downpour\w*)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+export function isWeatherEvent(title: string): boolean {
+  return WEATHER_EVENT.test(title);
+}
+
 export function isDrugOrMentalHealth(title: string): boolean {
   return DRUGS_OR_MENTAL_HEALTH.test(title);
 }
@@ -419,11 +445,26 @@ export function isFireStory(title: string): boolean {
   return NAMED_FIRE.test(title) && !NOT_A_FIRE.test(title);
 }
 
+/** What is never acceptable about a storm: who it hurt. */
+const HARM = new RegExp(
+  [
+    /\b(death\w*|dead|dying|die[sd]?|kill\w*|fatal(ly)?|fatalit\w*|casualt\w*)\b/,
+    /\b(injur\w*|wounded|missing|trapped|drown\w*|bodies|victims?|toll)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
 export function isDistressing(title: string): boolean {
   // Venom and fire are checked before the positive-framing exemption, because
   // "breakthrough" and "discover" were letting them straight through.
   if (VENOM.test(title) || isFireStory(title)) return true;
   if (MEDICAL_GOOD_NEWS.test(title) || DRUG_AS_MEDICINE.test(title)) return false;
+  // A storm is gated on corroboration in lib/select.ts rather than blocked
+  // here, so only the casualty words apply — and "tornado outbreak" is not a
+  // disease outbreak.
+  if (isWeatherEvent(title)) return HARM.test(title);
   return DISTRESSING.test(title);
 }
 
