@@ -835,3 +835,25 @@ test('a stale single-source story decays to near nothing', async () => {
   // not bottom out high enough to fill a slot on a quiet day.
   assert.ok(placementBoost(40) === 1);
 });
+
+test('magazine scene pieces are not news', async () => {
+  const { isTrivia } = await import('../lib/select');
+  // Both of these took paragraphs on a thin Sunday, in a four-paragraph brief.
+  for (const t of [
+    'Saturday Night, No Mask Required, at the Last Ditch Lesbian Bar in Massachusetts',
+    'Meet the volunteers keeping the lights on',
+    'One of the last video stores still standing',
+    'A night at the last drive-in theater',
+  ]) {
+    assert.ok(isTrivia(t), `should be demoted: ${t}`);
+  }
+});
+
+test("another state's campaign is not Rose's news; California's is", async () => {
+  const { isOtherStatesRace, isTrivia } = await import('../lib/select');
+  assert.ok(isOtherStatesRace('In Alaska, Senate candidate Mary Peltola tries to hold a coalition together'));
+  assert.ok(isOtherStatesRace('The Ohio governor race is tightening'));
+  assert.ok(!isOtherStatesRace('California Senate race tightens as ballots are counted'), 'her own state counts');
+  assert.ok(!isTrivia('Senate passes spending bill after long debate'), 'national news is not a race');
+  assert.ok(!isTrivia('Trump campaigns in Tennessee, Oklahoma and Alabama'), 'the president is national');
+});

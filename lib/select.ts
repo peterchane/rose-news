@@ -290,8 +290,14 @@ const TRIVIA = new RegExp(
     /\b(royal family|the royals|duchess|prince harry|meghan markle|kardashian|taylor swift'?s? (dress|outfit))\b/,
     // Prediction and betting markets, which are not news about the world.
     /\b(kalshi|polymarket|betting (market|odds|line)|prediction market|sportsbook|parlay)\b/,
-    // Magazine features about a subculture or a hobby. Fine writing, no news.
+    // Magazine features: a scene, a hangout, a profile. Fine writing, no news.
+    // "Saturday Night, No Mask Required, at the Last Ditch Lesbian Bar in
+    // Massachusetts" took a paragraph on a thin Sunday.
     /\b(notes from an?|obsessive subculture|a day in the life|inside the world of|why i|what it'?s like to)\b/,
+    /\b(saturday|friday|sunday|monday) night\b[^.]{0,50}\bat the\b/,
+    /\ba night (at|in|with)\b|\bdispatch from\b|\bmeet the\b|\bprofile:/,
+    /\bone of the last\b[^.]{0,40}\b(standing|left|in the (city|state|country))\b/,
+    /\bthe last\b[^.]{0,30}\bstanding\b/,
     // Lists and service journalism.
     /\b(\d+ (best|worst|things|ways|reasons)|here'?s where|ranked:|the best .{0,20} of \d{4})\b/,
     // Annual league tables. "Princeton Is No Longer No. 1 in the U.S. News
@@ -304,8 +310,36 @@ const TRIVIA = new RegExp(
   'i',
 );
 
+/**
+ * A campaign in one other state.
+ *
+ * Rose is sixteen and in California; a profile of a Senate candidate in Alaska
+ * is neither something she can act on nor something that reaches her. National
+ * races and California's own still count as news.
+ */
+const OTHER_STATES = new RegExp(
+  '\\b(' +
+    [
+      'alabama', 'alaska', 'arizona', 'arkansas', 'colorado', 'connecticut', 'delaware',
+      'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas',
+      'kentucky', 'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota',
+      'mississippi', 'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey',
+      'new mexico', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon',
+      'pennsylvania', 'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas',
+      'utah', 'vermont', 'virginia', 'washington state', 'west virginia', 'wisconsin', 'wyoming',
+    ].join('|') +
+    ')\\b',
+  'i',
+);
+
+const A_RACE = /\b(senate|house|governor'?s?|congressional|mayoral) (race|candidate|primary|campaign|seat)\b|\bcandidate for\b|\bon the campaign trail\b/i;
+
+export function isOtherStatesRace(title: string): boolean {
+  return A_RACE.test(title) && OTHER_STATES.test(title) && !/\bcalifornia\b/i.test(title);
+}
+
 export function isTrivia(title: string): boolean {
-  return TRIVIA.test(title);
+  return TRIVIA.test(title) || isOtherStatesRace(title);
 }
 
 /** Demoted hard rather than dropped — occasionally one of these IS the day. */
