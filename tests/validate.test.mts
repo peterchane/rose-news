@@ -857,3 +857,24 @@ test("another state's campaign is not Rose's news; California's is", async () =>
   assert.ok(!isTrivia('Senate passes spending bill after long debate'), 'national news is not a race');
   assert.ok(!isTrivia('Trump campaigns in Tennessee, Oklahoma and Alabama'), 'the president is national');
 });
+
+test('a story about where she lives outranks the same story elsewhere', async () => {
+  const { isLocalStory, LOCAL_BOOST } = await import('../lib/select');
+  // Peter, on a Sunday where an El Nino piece lost to a bar in Massachusetts:
+  // "los angeles el nino is a better choice."
+  assert.ok(LOCAL_BOOST > 2, 'the boost has to actually move it');
+  for (const t of [
+    'How El Niño is shaping storms in California',
+    'Los Angeles braces for a wet winter',
+    'California requires financial literacy courses in every high school',
+  ]) {
+    assert.ok(isLocalStory(t), `should be boosted: ${t}`);
+  }
+});
+
+test('the LA teams she does not follow never ride the local boost', async () => {
+  const { isLocalStory } = await import('../lib/select');
+  for (const t of ['Lakers trade for a new point guard', 'Dodgers clinch the NL West', 'Rams sign a new kicker']) {
+    assert.ok(!isLocalStory(t), `must not be boosted: ${t}`);
+  }
+});

@@ -345,6 +345,41 @@ export function isTrivia(title: string): boolean {
 /** Demoted hard rather than dropped — occasionally one of these IS the day. */
 export const TRIVIA_DEMOTION = 0.12;
 
+/**
+ * Where Rose actually lives.
+ *
+ * A story about storms hitting California is worth more to her than the same
+ * story about anywhere else — Peter, on a Sunday where an El Nino piece lost
+ * out to a bar in Massachusetts: "los angeles el nino is a better choice."
+ *
+ * Deliberately not the LA teams she doesn't follow; the sports relevance filter
+ * already handles those, and this must not drag a Lakers game up the list.
+ */
+const LOCAL = new RegExp(
+  [
+    /\b(california|californians?|los angeles|\bl\.?a\.?\b|southern california|socal)\b/,
+    /\b(san francisco|san diego|sacramento|bay area|silicon valley|orange county|hollywood)\b/,
+    /\b(usc|ucla|cal state|west coast|pacific coast)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+/** LA sports teams she has no stake in must not ride the local boost. */
+const NOT_HER_TEAMS = /\b(dodgers|lakers|rams|chargers|clippers|kings|angels|galaxy|sparks)\b/i;
+
+export const LOCAL_BOOST = 2.5;
+
+export function isLocalStory(title: string): boolean {
+  return LOCAL.test(title) && !NOT_HER_TEAMS.test(title);
+}
+
+function localBoost(title: string, section: Section): number {
+  if (section === 'sports' || section === 'usc') return 1;
+  return isLocalStory(title) ? LOCAL_BOOST : 1;
+}
+
 function triviaPenalty(title: string): number {
   return isTrivia(title) ? TRIVIA_DEMOTION : 1;
 }
@@ -458,6 +493,7 @@ export function selectClusters(
         favoriteBoost(primary.title, blurb, section, teamPattern) *
         warPenalty(primary.title, coverage.length) *
         triviaPenalty(primary.title) *
+        localBoost(primary.title, section) *
         techPenalty(section, primary.weight, coverage.length) *
         sciencePenalty(section, primary.weight, coverage.length) *
         notableOnlyAdjustment(primary.title, section, notableOnlyPattern, notableEvent),
