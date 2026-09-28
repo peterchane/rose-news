@@ -53,6 +53,7 @@ const MUST_SURVIVE = [
   'USC opens a new student center on campus',
   'California requires financial literacy courses in every high school',
   'Solar power passes 3 terawatts worldwide',
+  'CBS News poll finds voters split on the economy',
 ];
 
 test('ordinary news survives the content filters', () => {
@@ -87,6 +88,12 @@ const MUST_BLOCK = [
   'The best credit cards for travel in 2026',
   'Our picks: the best budgeting apps',
   'Top mortgage rates this week',
+  // Programme listings: a schedule, not a story. One reached Rose as a
+  // paragraph about what her grandparents might watch over breakfast.
+  'This week on "Sunday Morning" (Sept. 27)',
+  'Tonight on 60 Minutes: an interview with the governor',
+  'Full episode: Face the Nation, September 27',
+  'Coming up on Meet the Press this Sunday',
 ];
 
 test('word variants do not slip past the filters', () => {
