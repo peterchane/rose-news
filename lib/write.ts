@@ -15,12 +15,14 @@ import { fallbackParagraphs, FALLBACK_NOTE } from './fallback';
  */
 export const MODEL_CHAIN: string[] = [
   process.env.BRIEF_MODEL,
-  'anthropic/claude-sonnet-5',
+  // Peter's order. Opus writes it; the rest are there for a bad morning, and
+  // each one is a different lab so a shared failure mode can't take them all.
   'anthropic/claude-opus-5',
-  'anthropic/claude-haiku-4.5',
-  'anthropic/claude-sonnet-4.5',
-  'anthropic/claude-3-haiku',
-  'openai/gpt-5-mini',
+  'anthropic/claude-opus-5.5',
+  'openai/gpt-5-fast',
+  'google/gemini-3-flash',
+  // Held in reserve, only reached if everything above is unavailable.
+  'anthropic/claude-sonnet-5',
   'google/gemini-2.5-flash',
 ].filter((m): m is string => Boolean(m));
 
@@ -715,9 +717,18 @@ const defaultDraft: DraftFn = async (prompt, temperature, startAt = 0) => {
         // Extended thinking was 78% of the output bill — 3,400 reasoning tokens
         // to produce a 900-token email. This is a formatting-and-selection task
         // against a supplied candidate list, not a reasoning problem.
-        providerOptions: { anthropic: { thinking: { type: 'disabled' } } },
-        // A 9-paragraph brief is ~1,200 tokens; this is headroom, not a target.
-        maxOutputTokens: 3000,
+        providerOptions: {
+          anthropic: { thinking: { type: 'disabled' } },
+          // Gemini spends its output budget on reasoning and then truncates
+          // mid-JSON, which reads as an unparseable draft. Same reasoning as
+          // Anthropic above: this is selection and formatting, not a puzzle.
+          google: { thinkingConfig: { thinkingBudget: 0, includeThoughts: false } },
+        },
+        // A 9-paragraph brief is ~1,200 tokens, so this is headroom rather than
+        // a target — and headroom matters: Gemini runs long and was hitting the
+        // old 3,000 ceiling mid-sentence, producing unparseable drafts. Unused
+        // headroom is free; a truncated draft costs a retry.
+        maxOutputTokens: 6000,
       })) as Awaited<ReturnType<DraftFn>>;
     } catch (err) {
       const message = err instanceof Error ? err.message.split('\n')[0] : String(err);
