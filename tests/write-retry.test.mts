@@ -77,14 +77,16 @@ test('survives two consecutive throws and succeeds on the third attempt', async 
   assert.equal(out.subject, dailySubject());
 });
 
-test('gives up after three failures rather than sending something broken', async () => {
+test('after three failures it sends headlines rather than nothing', async () => {
   let calls = 0;
   const draft: DraftFn = async () => {
     calls++;
     throw schemaError();
   };
-  await assert.rejects(() => writeBrief(clusters, null, draft), BriefValidationError);
-  assert.equal(calls, 3, 'tried three times before giving up');
+  const brief = await writeBrief(clusters, null, draft);
+  assert.equal(calls, 3, 'tried three times first');
+  assert.ok(brief.degraded, 'flagged so the owner is told');
+  assert.ok(brief.paragraphs.length > 1, 'and Rose still gets an email');
 });
 
 test('a validation failure is fed back to the next attempt', async () => {
@@ -188,9 +190,13 @@ test('a bare "more" or "here" anchor is still rejected', () => {
   }
 });
 
-test('a final draft with a fabricated link is still refused', async () => {
+test('a fabricated link never reaches Rose', async () => {
+  // Citing #999 is fatal, so every attempt fails and the headlines-only
+  // fallback goes instead — the invented id never appears in the email.
   const broken = { ...good, paragraphs: [para(1, 2), para(3, 4), para(5, 6), para(7, 8), para(9, 999)] };
-  await assert.rejects(() => writeBrief(clusters, null, async () => wrap(broken)), BriefValidationError);
+  const brief = await writeBrief(clusters, null, async () => wrap(broken));
+  assert.ok(brief.degraded, 'the bad draft was refused');
+  assert.ok(!brief.paragraphs.some((p) => p.includes('#999')), 'and its fabricated id is gone');
 });
 
 test('an access or billing failure fails fast instead of retrying', async () => {

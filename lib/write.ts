@@ -4,6 +4,7 @@ import { SECTION_LABELS, SECTION_ORDER } from './feeds';
 import type { Cluster } from './select';
 import { isSchoolViolence } from './ingest';
 import { dailySubject } from './schedule';
+import { fallbackParagraphs, FALLBACK_NOTE } from './fallback';
 
 /**
  * Models are tried in order until one works. Gateway access changes without
@@ -47,7 +48,14 @@ export const briefSchema = z.object({
 type RawBrief = z.infer<typeof briefSchema>;
 
 /** A brief that has been through writeBrief, which stamps the dated subject. */
-export type Brief = RawBrief & { subject: string };
+export type Brief = RawBrief & {
+  subject: string;
+  /**
+   * Set when the writer failed every attempt and this is the headlines-only
+   * fallback. Carries the reason, so the owner is told what happened.
+   */
+  degraded?: string;
+};
 
 /**
  * Splits a paragraph at a mid-paragraph pivot instead of rejecting the draft.
@@ -811,7 +819,14 @@ export async function writeBrief(
     }
   }
 
-  throw new BriefValidationError(
-    `Brief failed after ${ATTEMPTS} attempts: ${lastProblems.map(problemText).join(' | ')}`,
-  );
+  // Every retry is spent and no draft survived. Rose still gets an email:
+  // headlines and links, assembled in code, which cannot fail the way prose
+  // can. Twice this exact point produced silence instead.
+  const why = lastProblems.map(problemText).join(' | ');
+  console.error(`[write] all ${ATTEMPTS} attempts failed (${why}); sending headlines only`);
+  return {
+    subject: dailySubject(),
+    paragraphs: [FALLBACK_NOTE, ...fallbackParagraphs(clusters)],
+    degraded: why,
+  };
 }

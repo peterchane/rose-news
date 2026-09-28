@@ -33,9 +33,23 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { brief, rendered, clusters, failures } = await buildBrief();
+    const { brief, rendered, clusters, failures, degraded } = await buildBrief();
 
     const id = await sendBrief(rendered);
+
+    // She got an email either way; the owner still needs to know it was thin.
+    if (degraded) {
+      console.error(`[cron] sent the headlines-only fallback: ${degraded}`);
+      try {
+        await sendFailureAlert(
+          'Sent headlines only',
+          `The writer failed every attempt, so Rose got headlines and links instead of ` +
+            `the usual brief. She did get an email.\n\nReason: ${degraded}`,
+        );
+      } catch (err) {
+        console.error('[cron] could not send the degraded-brief notice:', err);
+      }
+    }
 
     // Archiving is bookkeeping; a failure here must not report the send as failed.
     try {

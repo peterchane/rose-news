@@ -17,6 +17,8 @@ export const MIN_CLUSTERS = 12;
 export class ThinNewsDayError extends Error {}
 
 export type PipelineResult = {
+  /** Set when the brief is the headlines-only fallback; carries the reason. */
+  degraded?: string;
   brief: Brief;
   rendered: RenderedBrief;
   clusters: Cluster[];
@@ -66,5 +68,5 @@ export async function buildBrief(): Promise<PipelineResult> {
   if (holiday) console.log(`[jewish] ${holiday}`);
   const rendered = renderBrief(brief, kept, weather, holiday);
 
-  return { brief, rendered, clusters: kept, failures };
+  return { brief, rendered, clusters: kept, failures, degraded: brief.degraded };
 }
