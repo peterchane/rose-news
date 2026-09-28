@@ -77,14 +77,14 @@ test('survives two consecutive throws and succeeds on the third attempt', async 
   assert.equal(out.subject, dailySubject());
 });
 
-test('after three failures it sends headlines rather than nothing', async () => {
+test('after every attempt fails it sends headlines rather than nothing', async () => {
   let calls = 0;
   const draft: DraftFn = async () => {
     calls++;
     throw schemaError();
   };
   const brief = await writeBrief(clusters, null, draft);
-  assert.equal(calls, 3, 'tried three times first');
+  assert.equal(calls, 4, 'four attempts first');
   assert.ok(brief.degraded, 'flagged so the owner is told');
   assert.ok(brief.paragraphs.length > 1, 'and Rose still gets an email');
 });
@@ -312,4 +312,23 @@ test('dropUncited leaves the shared citation regex unpolluted', async () => {
   dropUncited([para(1, 2), para(3, 4), para(5, 6), para(7, 8), 'uncited text here']);
   assert.equal(CITATION_RE.lastIndex, 0, 'lastIndex must not be left advanced');
   assert.deepEqual(v(good, clusters), [], 'validation still clean afterwards');
+});
+
+test('a repeated failure escalates to a different model', async () => {
+  // Retrying the same model with the same prompt fails the same way: one
+  // morning Sonnet returned three uncited paragraphs three times running and
+  // Rose got no email. A different model is a genuinely different attempt.
+  const startedAt: number[] = [];
+  let calls = 0;
+  const draft: DraftFn = async (_prompt, _temp, startAt = 0) => {
+    startedAt.push(startAt);
+    calls++;
+    // Fail the first three; the fourth, on a later model, succeeds.
+    if (calls < 4) throw schemaError();
+    return wrap(good);
+  };
+
+  const brief = await writeBrief(clusters, null, draft);
+  assert.equal(brief.degraded, undefined, 'a later model produced a real brief');
+  assert.deepEqual(startedAt, [0, 0, 1, 2], 'the chain walks forward on retries');
 });

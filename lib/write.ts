@@ -687,7 +687,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
  * Produces one candidate draft. Injectable so the retry behaviour can be tested
  * without calling a model.
  */
-export type DraftFn = (prompt: string, temperature: number) => Promise<{
+export type DraftFn = (prompt: string, temperature: number, startAt?: number) => Promise<{
   object: RawBrief;
   usage: { inputTokens?: number; outputTokens?: number };
 }>;
@@ -697,10 +697,14 @@ export type DraftFn = (prompt: string, temperature: number) => Promise<{
  * unusable-everywhere situation throws, and then the message names the real
  * cause rather than blaming the model's output.
  */
-const defaultDraft: DraftFn = async (prompt, temperature) => {
+const defaultDraft: DraftFn = async (prompt, temperature, startAt = 0) => {
   const blocked: string[] = [];
 
-  for (const model of MODEL_CHAIN) {
+  // startAt walks the chain forward on repeated failures. Retrying the same
+  // model with the same prompt tends to fail the same way: one morning Sonnet
+  // returned three uncited paragraphs three times running, and Rose got
+  // nothing. A different model is a genuinely different attempt.
+  for (const model of MODEL_CHAIN.slice(Math.min(startAt, MODEL_CHAIN.length - 1))) {
     try {
       return (await generateObject({
         model,
@@ -740,7 +744,9 @@ export async function writeBrief(
   draft: DraftFn = defaultDraft,
 ): Promise<Brief> {
   const basePrompt = buildPrompt(clusters, previous);
-  const ATTEMPTS = 3;
+  // Four attempts across three models. The extra rolls only happen on a bad
+  // day, and a lost edition costs far more than a retry.
+  const ATTEMPTS = 4;
 
 
   let lastProblems: string[] = [];
@@ -755,7 +761,9 @@ export async function writeBrief(
 
     try {
       // Nudge toward the format on later tries rather than more creativity.
-      const { object, usage } = await draft(prompt, attempt === 1 ? 0.7 : 0.4);
+      // Attempt 1 and 2 use the preferred model; 3 and 4 escalate to the next
+      // ones in the chain rather than asking the same model a third time.
+      const { object, usage } = await draft(prompt, attempt === 1 ? 0.7 : 0.4, Math.max(0, attempt - 2));
 
       console.log(
         `[write] ${MODEL} attempt ${attempt}: ` +
