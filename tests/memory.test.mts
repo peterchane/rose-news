@@ -125,3 +125,20 @@ test('the prompt stays lean', () => {
   const approxTokens = SYSTEM_PROMPT.length / 4;
   assert.ok(approxTokens < 1000, `system prompt is ~${Math.round(approxTokens)} tokens`);
 });
+
+test('the prompt states what is not news, not just what is', async () => {
+  const { SYSTEM_PROMPT } = await import('../lib/write');
+  // Keyword filters only catch shapes already seen. Rose has rejected TV
+  // listings, previews, listicles, rate tables and scene pieces one at a time;
+  // naming the category lets the model catch the next variant too.
+  assert.match(SYSTEM_PROMPT, /Something must have HAPPENED/);
+  assert.match(SYSTEM_PROMPT, /you are never required to use a candidate/);
+});
+
+test('the prompt forbids supplying facts of its own', async () => {
+  const { SYSTEM_PROMPT } = await import('../lib/write');
+  // A one-line TV listing became a paragraph about Emmy wins, the host's name
+  // and what grandparents watch over breakfast. None of it came from the feed.
+  assert.match(SYSTEM_PROMPT, /NEVER add a fact that isn't in the candidate/);
+  assert.match(SYSTEM_PROMPT, /from your own knowledge/);
+});
