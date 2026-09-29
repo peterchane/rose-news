@@ -130,7 +130,7 @@ const VIOLENT_CRIME = new RegExp(
     /\b(stabs?|stabb\w*)\b/,
     /\bmurder\w*/,
     /\babduct\w*/,
-    /\bkidnap\w*/,
+    /\b(kidnap\w*|ransom\w*|abduct\w*)\b/,
     /\bsexual(ly)? (assault|abuse)\b/,
     /\brap(ed|ist)\b/,
     /\b(beheaded|dismembered)\b/,
@@ -159,8 +159,8 @@ export function isViolentCrime(title: string): boolean {
  */
 const SCHOOL_VIOLENCE = new RegExp(
   [
-    /\b(school|campus|classroom|university|college|dorm|residence hall|sorority|fraternity|elementary|high school|middle school|kindergarten|preschool|daycare)\b.{0,80}\b(shoot\w*|shot|gunman|gunfire|shooter|massacre|attack|killed|stabb\w*|lockdown|active threat)\b/,
-    /\b(shoot\w*|shot|gunman|gunfire|shooter|massacre|lockdown|active threat)\b.{0,80}\b(school|campus|classroom|university|college|dorm|residence hall|sorority|fraternity|elementary|high school|middle school|kindergarten|preschool|daycare|students?|teachers?|pupils?)\b/,
+    /\b(school|campus|classroom|university|college|dorm|residence hall|sorority|fraternity|elementary|high school|middle school|kindergarten|preschool|daycare)\b.{0,80}\b(shoot\w*|shot|gunman|gunfire|shooter|massacre|attack|killed|stabb\w*|lockdown|active threat|rape\w*|sexual assault\w*|assault\w*)\b/,
+    /\b(shoot\w*|shot|gunman|gunfire|shooter|massacre|lockdown|active threat|rape\w*|sexual assault\w*)\b.{0,80}\b(school|campus|classroom|university|college|dorm|residence hall|sorority|fraternity|elementary|high school|middle school|kindergarten|preschool|daycare|students?|teachers?|pupils?)\b/,
     /\b(active shooter|school shooting|campus shooting|mass casualty)\b/,
     // The recurring named tragedies, which resurface in policy coverage.
     /\b(columbine|sandy hook|parkland|uvalde|virginia tech|marjory stoneman)\b/,
@@ -295,6 +295,11 @@ const DISTRESSING = new RegExp(
     /\bnitrogen\b.{0,20}\b(execution|hypoxia|gas)\b/,
     /\b(inmate|prisoner|condemned|convict)\b.{0,40}\b(execut\w*|die|death|last meal|clemency|stay of)\b/,
     /\bexecut(e|es|ed|ion|ions)\b.{0,40}\b(inmate|prisoner|condemned|death|state of|scheduled)\b/,
+    // "Tennessee is set to execute a woman for the first time" names no inmate
+    // and no method. A state executing a person is the story whatever the noun.
+    /\b(set|plans?|scheduled|poised|expected|due|moves?) to execute\b/,
+    /\bexecut(e|es|ed|ing)\s+(a|an|the|his|her|its)?\s*(man|woman|men|women|person|people|inmate|prisoner|teen\w*|mother|father)\b/,
+    /\b(state|states|texas|florida|alabama|tennessee|oklahoma|georgia|missouri|south carolina)\b.{0,30}\bexecut\w*/,
     /\b(terminal(ly)? ill|life support|hospice|euthanasia|assisted dying)\b/,
 
     // Disease and grim medical news. Peter: "nothing about disease or bad
@@ -488,6 +493,30 @@ export function stripOutletSuffix(title: string, source: string | null): string 
   return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;
 }
 
+/**
+ * Sexual violence, absolutely and always. Peter: "never show rape stories."
+ *
+ * Same treatment as school violence: checked against the summary as well as
+ * the headline, and never exempted by section or by any positive framing. A
+ * headline can say "investigation" or "case reopened" and leave the rest to the
+ * summary, which is exactly how "Cornell University Rape Investigation" reached
+ * the list of stories the writer was told it must cover.
+ */
+const SEXUAL_VIOLENCE = new RegExp(
+  [
+    /\b(rape[ds]?|rapists?|raping|sexual(ly)? (assault\w*|abuse\w*|violence|misconduct|harass\w*))\b/,
+    /\b(molest\w*|sex(ual)? offen\w*|sex trafficking|child abuse|groom(ing|ed)|indecent (assault|exposure))\b/,
+    /\b(non-?consensual|incest|statutory|sextortion|revenge porn)\b/,
+  ]
+    .map((r) => r.source)
+    .join('|'),
+  'i',
+);
+
+export function isSexualViolence(text: string): boolean {
+  return SEXUAL_VIOLENCE.test(text);
+}
+
 export function isReportableNews(
   title: string,
   link: string,
@@ -496,6 +525,7 @@ export function isReportableNews(
 ): boolean {
   // Checked against headline AND summary, and never exempted by section.
   if (isSchoolViolence(`${title} ${blurb}`)) return false;
+  if (isSexualViolence(`${title} ${blurb}`)) return false;
 
   let path = '';
   try {

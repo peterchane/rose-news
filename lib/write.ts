@@ -2,8 +2,9 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { SECTION_LABELS, SECTION_ORDER } from './feeds';
 import type { Cluster } from './select';
-import { isSchoolViolence } from './ingest';
+import { isSchoolViolence, isSexualViolence } from './ingest';
 import { dailySubject } from './schedule';
+import { POSTSEASON_EVENT } from './teams';
 import { fallbackParagraphs, FALLBACK_NOTE } from './fallback';
 
 /**
@@ -278,7 +279,9 @@ OUTPUT: return "paragraphs", an array of strings. The subject line is written fo
  * the model picks the same section every day; rotating deliberately is what
  * actually varies the reading experience.
  */
-export const LEAD_ROTATION = ['sports', 'us', 'usc', 'tech', 'us', 'science', 'us'] as const;
+// No science: Peter, "science should never open." US news takes the slot, and
+// alternates with the rest so no two days in a row open the same way.
+export const LEAD_ROTATION = ['sports', 'us', 'usc', 'us', 'tech', 'us'] as const;
 
 export function leadForDate(date: string): string {
   const days = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
@@ -290,8 +293,25 @@ const LEAD_LABEL: Record<string, string> = {
   us: 'the biggest US news story',
   usc: 'a USC story',
   tech: 'the major tech story',
-  science: 'a science story',
 };
+
+/**
+ * The Cubs story to open with, while they are in the postseason.
+ *
+ * Peter: "put cubs at the top for as long as they are in the playoffs." Keyed
+ * on the news itself rather than a calendar, so it starts when there is a
+ * playoff story and stops on its own once they are out and the stories stop.
+ */
+export function cubsPlayoffLead(clusters: Cluster[]): Cluster | null {
+  return (
+    clusters.find(
+      (c) =>
+        c.section === 'sports' &&
+        /\bcubs\b/i.test(c.title) &&
+        POSTSEASON_EVENT.test(`${c.title} ${c.blurb}`),
+    ) ?? null
+  );
+}
 
 export function buildPrompt(
   clusters: Cluster[],
@@ -307,10 +327,15 @@ export function buildPrompt(
   });
 
   const leadSection = lead ?? leadForDate(new Date().toISOString().slice(0, 10));
+  const cubs = cubsPlayoffLead(clusters);
+  const leadLine = cubs
+    ? `\nLEAD WITH: the Cubs playoff story, #${cubs.id} "${cubs.title}". ` +
+      `Open the email with it — this overrides the usual rotation while they are in the postseason.`
+    : `\nLEAD WITH: ${LEAD_LABEL[leadSection] ?? 'the biggest US news story'}. ` +
+      `If no good candidate of that kind exists today, lead with the biggest US news story instead.`;
   const parts = [
     `Today is ${today}. Write today's briefing for Rose.`,
-    `\nLEAD WITH: ${LEAD_LABEL[leadSection] ?? 'the biggest US news story'}. ` +
-      `If no good candidate of that kind exists today, lead with the biggest US news story instead.`,
+    leadLine,
     `\nCandidate stories — these are the only stories you may write about, and the only IDs you may cite:\n${formatCandidates(clusters)}`,
   ];
 
@@ -488,6 +513,9 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   // Absolute. Checked on the finished prose as well as at ingest, because this
   // is the one subject where a filter miss is not acceptable. Always fatal.
   for (const [i, para] of brief.paragraphs.entries()) {
+    if (isSexualViolence(para)) {
+      fatal(`Paragraph ${i + 1} refers to sexual violence, which must NEVER appear. Remove it entirely.`);
+    }
     if (isSchoolViolence(para)) {
       fatal(
         `Paragraph ${i + 1} refers to school violence, which must NEVER appear. Remove it entirely.`,
@@ -584,6 +612,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
 
   // Sports gets a quota but nothing otherwise forces the writer to spend it,
   // and it kept getting dropped for another science item.
+  const sectionsOfIds = (p: string) => [...p.matchAll(CITATION_RE)].map((m) => Number(m[2]));
   const sectionsOf = (p: string) =>
     [...p.matchAll(CITATION_RE)].map((m) => sectionById.get(Number(m[2])));
 
@@ -645,6 +674,17 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
       `${uncited} paragraphs cite nothing. Every paragraph needs 1-3 citations ` +
         'in the form [phrase](#ID), using the candidate numbers.',
     );
+  }
+
+  const cubs = cubsPlayoffLead(clusters);
+  if (cubs && brief.paragraphs.length > 0) {
+    const opening = sectionsOfIds(brief.paragraphs[0]);
+    if (!opening.includes(cubs.id)) {
+      retry(
+        `Open with the Cubs playoff story (#${cubs.id}). While the Cubs are in the ` +
+          'postseason, they lead the email.',
+      );
+    }
   }
 
   const missed = topStories(clusters).filter((c) => !allCited.has(c.id));

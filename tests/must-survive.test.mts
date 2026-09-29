@@ -147,3 +147,54 @@ test('aggregator filler is dropped, real USC news is not', async () => {
   assert.equal(stripOutletSuffix('Oregon adds a twist - Sports Illustrated', 'Sports Illustrated'), 'Oregon adds a twist');
   assert.equal(stripOutletSuffix('A headline with - a dash in it', null), 'A headline with - a dash in it');
 });
+
+/**
+ * Sexual violence, absolutely. Peter: "never show rape stories." Checked
+ * against the summary as well as the headline — "Cornell University Rape
+ * Investigation" reached the list of stories the writer was told it MUST cover.
+ */
+test('sexual violence never reaches her, headline or summary', async () => {
+  const { isReportableNews, isSexualViolence } = await import('../lib/ingest');
+  for (const t of [
+    'Cornell University Rape Investigation: What We Know',
+    'Alleged Cornell fraternity rape case will be reopened',
+    'Coach charged with sexual assault of a student',
+    'Report details sexual abuse at a youth camp',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://e.com/n/x'), `should be blocked: ${t}`);
+  }
+  // A clean headline with the detail only in the summary is still blocked.
+  assert.ok(
+    !isReportableNews('Cornell reopens an investigation', 'https://e.com/n/x', 'us',
+      'The case involves an alleged rape at a fraternity house.'),
+    'the summary alone is enough',
+  );
+  assert.ok(!isSexualViolence('Grape harvest begins early in Napa'), 'grape is not rape');
+});
+
+test('sexual violence in the finished prose is fatal', async () => {
+  const { validateBrief, isFatal } = await import('../lib/write');
+  const p = (n: number) =>
+    `Officials moved to settle a long dispute this week, [according to talks](#${n}). ` +
+    `The decision lands after months of pressure. Negotiators met for two days.`;
+  const clusters = [1, 2, 3, 4, 5].map((id) => ({
+    id, title: `Story ${id}`, section: 'us' as const, blurb: '', link: 'https://e.com/x',
+    source: 'NPR', coverage: [], publishedAt: new Date(), score: 1,
+  }));
+  const bad = { subject: 'x', paragraphs: [p(1), p(2), p(3), 'An alleged rape at a fraternity [was reported](#4).', p(5)] };
+  assert.ok(validateBrief(bad, clusters).some((x) => /sexual violence/.test(x) && isFatal(x)));
+});
+
+test('executions are blocked however the state phrases it', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  for (const t of [
+    'Tennessee is set to execute a woman for the first time in decades',
+    'Texas executes a man convicted in 1998',
+    'Oklahoma plans to execute two inmates next month',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://e.com/n/x'), `should be blocked: ${t}`);
+  }
+  for (const t of ['Company executed its merger plan ahead of schedule', 'USC executes a comeback in the fourth quarter']) {
+    assert.ok(isReportableNews(t, 'https://e.com/n/x'), `should survive: ${t}`);
+  }
+});
