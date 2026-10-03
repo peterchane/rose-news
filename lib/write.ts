@@ -205,6 +205,25 @@ export const CITATION_RE = /\[([^\]\n]+)\]\(#(\d+)\)/g;
 function formatCandidates(clusters: Cluster[]): string {
   const lines: string[] = [];
 
+  // Chosen by lib/choose.ts: the day's top news and her interests, nothing
+  // else. Shown as the two groups Peter described, so the writer can't treat
+  // her interests as optional filler.
+  if (clusters.some((c) => c.tier)) {
+    const line = (c: Cluster) => {
+      const outlets = new Set(c.coverage.map((x) => x.source)).size;
+      const blurb = c.blurb ? `\n     ${c.blurb.slice(0, 110)}` : '';
+      return `#${c.id} ${c.title}${outlets > 1 ? ` [${outlets} outlets ran it]` : ''}${blurb}`;
+    };
+    lines.push("## TOP NEWS — the day's biggest stories. Cover every one.");
+    lines.push(...clusters.filter((c) => c.tier === 'top').map(line));
+    const mine = clusters.filter((c) => c.tier === 'interest');
+    if (mine.length) {
+      lines.push('\n## HER INTERESTS — USC and her teams, LA and California, journalism, PR, pop culture and media. Cover every one.');
+      lines.push(...mine.map(line));
+    }
+    return lines.join('\n');
+  }
+
   // Stated first and stated plainly. Grouped-by-section was all the model ever
   // saw, so the ranking may as well not have existed.
   const top = topStories(clusters);
@@ -383,7 +402,9 @@ export class BriefConfigError extends Error {}
  * this model" — which is exactly how the Aug 10 brief was lost.
  */
 export function isUnretryable(message: string): boolean {
-  return /free tier|do not have access|upgrade to paid|insufficient (credit|quota|funds)|quota exceeded|unauthenticated|unauthorized|invalid api key|billing/i.test(
+  // "API key budget exceeded" was missing: a spending cap was hit, every model
+  // was retried four times, and the alert blamed a parse error.
+  return /free tier|do not have access|upgrade to paid|insufficient (credit|quota|funds)|quota exceeded|budget exceeded|spend(ing)? limit|unauthenticated|unauthorized|invalid api key|billing/i.test(
     message,
   );
 }
@@ -450,6 +471,10 @@ const STOPWORDS = new Set([
 ]);
 
 export function topStories(clusters: Cluster[], count = TOP_STORY_COUNT): Cluster[] {
+  // lib/choose.ts already decided; don't second-guess it with a fresh ranking.
+  const chosen = clusters.filter((c) => c.tier === 'top');
+  if (chosen.length) return chosen;
+
   const ranked = [...clusters]
     .filter((c) => !NOT_THE_DAYS_NEWS.has(c.section))
     .sort((a, b) => b.score - a.score);
@@ -687,6 +712,15 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     }
   }
 
+  const skippedInterests = clusters.filter((c) => c.tier === 'interest' && !allCited.has(c.id));
+  if (skippedInterests.length) {
+    retry(
+      `You skipped ${skippedInterests.length} of her interests: ` +
+        skippedInterests.map((c) => `#${c.id} "${c.title.slice(0, 50)}"`).join(', ') +
+        '. Cover every one of them.',
+    );
+  }
+
   const missed = topStories(clusters).filter((c) => !allCited.has(c.id));
   if (missed.length) {
     retry(
@@ -763,6 +797,9 @@ const defaultDraft: DraftFn = async (prompt, temperature, startAt = 0) => {
           // mid-JSON, which reads as an unparseable draft. Same reasoning as
           // Anthropic above: this is selection and formatting, not a puzzle.
           google: { thinkingConfig: { thinkingBudget: 0, includeThoughts: false } },
+          // Same failure on GPT-5: finishReason=length with zero text, every
+          // token spent reasoning about a formatting task.
+          openai: { reasoningEffort: 'minimal' },
         },
         // A 9-paragraph brief is ~1,200 tokens, so this is headroom rather than
         // a target — and headroom matters: Gemini runs long and was hitting the
@@ -801,6 +838,7 @@ export async function writeBrief(
 
 
   let lastProblems: string[] = [];
+  let best: { draft: Brief; problems: number } | null = null;
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     const prompt =
@@ -817,7 +855,7 @@ export async function writeBrief(
       const { object, usage } = await draft(prompt, attempt === 1 ? 0.7 : 0.4, Math.max(0, attempt - 2));
 
       console.log(
-        `[write] ${MODEL} attempt ${attempt}: ` +
+        `[write] ${MODEL_CHAIN[Math.min(Math.max(0, attempt - 2), MODEL_CHAIN.length - 1)]} attempt ${attempt}: ` +
           `${usage.inputTokens ?? '?'} in / ${usage.outputTokens ?? '?'} out`,
       );
 
@@ -841,6 +879,14 @@ export async function writeBrief(
       // good email, so ship it rather than paying to re-roll for polish. A
       // draft that missed the day's news is worth one more roll, but is still
       // sent if the attempts run out: a middling email beats no email.
+      // A draft with no fatal problem is a sendable email. Remember the best
+      // one: an attempt-3 draft whose only flaw was skipping a Dodgers story
+      // was re-rolled, the re-roll failed, and Rose got headlines instead.
+      if (!lastProblems.some(isFatal)) {
+        const count = lastProblems.length;
+        if (!best || count < best.problems) best = { draft: candidate, problems: count };
+      }
+
       const worthRetry = lastProblems.some(isWorthRetry) && attempt < ATTEMPTS;
       if (!lastProblems.some(isFatal) && !worthRetry) {
         console.warn(
@@ -876,6 +922,12 @@ export async function writeBrief(
           'No markdown fences, no nested objects, no extra keys.',
       ];
     }
+  }
+
+  // A real draft beats the headline list every time, even an imperfect one.
+  if (best) {
+    console.warn(`[write] sending the best draft found (${best.problems} minor issue(s))`);
+    return best.draft;
   }
 
   // Every retry is spent and no draft survived. Rose still gets an email:

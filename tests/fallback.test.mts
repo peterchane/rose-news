@@ -89,3 +89,27 @@ test('a good draft is never replaced by the fallback', async () => {
   assert.equal(brief.degraded, undefined, 'not degraded');
   assert.ok(!brief.paragraphs.includes(FALLBACK_NOTE));
 });
+
+test('a decent earlier draft is sent rather than the headline fallback', async () => {
+  // Attempt 3 was a good email whose only flaw was skipping one story. It was
+  // re-rolled, the re-roll failed outright, and Rose got headlines instead.
+  const para = (a: number, b: number) =>
+    `Officials moved to settle a long dispute this week, [according to talks](#${a}). ` +
+    `The decision lands after months of pressure. Negotiators met for two days. ` +
+    `A separate development [emerged on Tuesday](#${b}). Analysts expect more soon.`;
+  const tagged = CLUSTERS.map((c) => ({ ...c, tier: c.id === 7 ? ('interest' as const) : ('top' as const) }));
+  let calls = 0;
+  const draft: DraftFn = async () => {
+    calls++;
+    if (calls === 4) throw new Error('No object generated: finishReason=length');
+    // Good apart from skipping the interest story, #7: worth a retry, not fatal.
+    return {
+      object: { paragraphs: [para(6, 1), para(2, 3), para(4, 5), para(1, 2), para(3, 4)] },
+      usage: { inputTokens: 1, outputTokens: 1 },
+    };
+  };
+  const brief = await writeBrief(tagged, null, draft);
+  assert.equal(brief.degraded, undefined, 'not the headline fallback');
+  assert.ok(!brief.paragraphs.includes(FALLBACK_NOTE));
+  assert.ok(brief.paragraphs.some((p) => p.includes('#6')), 'the real draft was sent');
+});

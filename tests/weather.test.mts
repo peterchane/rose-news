@@ -61,12 +61,34 @@ test('the real USC forecast for a steady week stays silent', () => {
   assert.equal(weatherNote(steady), null);
 });
 
-test('temperature is never reported, however big the swing', () => {
-  // Peter's call: rain and storms only. A cool-down is not worth a line.
-  assert.equal(weatherNote([day('This Afternoon', 92), day('Monday', 74)]), null, 'no cool-down line');
-  assert.equal(weatherNote([day('This Afternoon', 70), day('Monday', 92)]), null, 'no warm-up line');
-  assert.equal(weatherNote([day('This Afternoon', 104), day('Monday', 104)]), null, 'not even a hot day');
-  assert.equal(weatherNote([day('This Afternoon', 48), day('Monday', 48)]), null, 'not even a cold one');
+test('a swing or a cold day is not reported; heat is', () => {
+  // Peter dropped temperature, then: "there should be something about LA heat
+  // wave." Cool-downs, warm-ups below the heat line, and cold days stay silent.
+  assert.equal(weatherNote([day('This Afternoon', 84), day('Monday', 70)]), null, 'no cool-down line');
+  assert.equal(weatherNote([day('This Afternoon', 70), day('Monday', 85)]), null, 'no warm-up line');
+  assert.equal(weatherNote([day('This Afternoon', 48), day('Monday', 48)]), null, 'no cold-day line');
+  assert.match(weatherNote([day('This Afternoon', 104), day('Monday', 104)])!, /heat wave/i, 'heat is news');
+});
+
+test('a heat wave says how hot and how long', () => {
+  // The real USC forecast that prompted this: 100, 100, 98, 97.
+  const wave = [
+    day('Today', 100), night('Tonight', 80), day('Sunday', 100), night('Sunday Night', 77),
+    day('Monday', 98), night('Monday Night', 78), day('Tuesday', 97),
+  ];
+  assert.equal(weatherNote(wave), 'Heat wave: highs near 100°F through Tuesday.');
+  assert.equal(weatherNote([day('Today', 93), day('Sunday', 80)]), 'Hot today, with a high near 93°F.');
+  assert.equal(
+    weatherNote([day('Today', 78), day('Sunday', 95), day('Monday', 97)]),
+    'A heat wave arrives Sunday, with highs near 97°F.',
+  );
+});
+
+test('heat and rain together both get said', () => {
+  const both = [day('Today', 96), day('Sunday', 88, 60)];
+  const note = weatherNote(both)!;
+  assert.match(note, /Hot today/);
+  assert.match(note, /Rain is likely Sunday/);
 });
 
 test('a trace chance of rain is not rain', () => {
@@ -121,7 +143,7 @@ test('rain still speaks when a temperature swing comes with it', () => {
   const both = [day('This Afternoon', 88), day('Monday', 70, 80)];
   const note = weatherNote(both)!;
   assert.match(note, /rain/i);
-  assert.doesNotMatch(note, /cool|degrees/i, 'and says nothing about the temperature');
+  assert.doesNotMatch(note, /cool/i, 'and says nothing about a cool-down');
 });
 
 // ── It must never be able to break the email ───────────────────────────────

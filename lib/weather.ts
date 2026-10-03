@@ -86,8 +86,38 @@ function when(name: string): string {
  * storms are the only things worth interrupting her morning for; heat, cold and
  * a swing in either direction all pass without comment.
  */
+/**
+ * LA heat. Peter dropped temperature from the line once, then: "LA weather is
+ * important" and "there should be something about LA heat wave" — on a
+ * weekend forecast of 100, 100, 98 and 97 that the email said nothing about.
+ * A cool day or an ordinary warm one still passes without comment; heat is
+ * what changes her day.
+ */
+// 90 is an ordinary late-summer day downtown; mid-90s and up is the heat that
+// changes plans.
+export const HEAT_F = 93;
+
+function heatNote(periods: Period[]): string | null {
+  const days = periods.filter((p) => p.isDaytime).slice(0, LOOKAHEAD_DAYS);
+  const start = days.findIndex((d) => d.temperature >= HEAT_F);
+  if (start === -1) return null;
+
+  let end = start;
+  while (end + 1 < days.length && days[end + 1].temperature >= HEAT_F) end++;
+  const peak = Math.max(...days.slice(start, end + 1).map((d) => d.temperature));
+
+  if (start > 0) return `A heat wave arrives ${days[start].name}, with highs near ${peak}°F.`;
+  if (end === 0) return `Hot today, with a high near ${peak}°F.`;
+  return `Heat wave: highs near ${peak}°F through ${days[end].name}.`;
+}
+
+/** How far ahead to look for heat; beyond this the forecast is too soft to say. */
+export const LOOKAHEAD_DAYS = 4;
+
 export function weatherNote(periods: Period[]): string | null {
-  return rainNote(periods);
+  // Heat first: it's happening now more often than rain is coming.
+  const lines = [heatNote(periods), rainNote(periods)].filter(Boolean);
+  return lines.length ? lines.join(' ') : null;
 }
 
 /**

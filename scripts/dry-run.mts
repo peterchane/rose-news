@@ -5,7 +5,13 @@
  * same way: run it for real, see what validation says. Tests cover the rules;
  * this covers the day's actual candidates.
  */
-import { buildBrief } from '../lib/pipeline';
+// Test runs write with a cheap model unless told otherwise. On Oct 3 a day of
+// dry runs on Opus burned through the $10 AI Gateway cap and Rose's next email
+// failed. Her real email still uses Opus; this only changes test runs.
+// Override with BRIEF_MODEL=... to test a specific model on purpose.
+if (!process.env.BRIEF_MODEL) process.env.BRIEF_MODEL = 'google/gemini-3-flash';
+
+const { buildBrief } = await import('../lib/pipeline');
 
 const { rendered, clusters, failures } = await buildBrief();
 

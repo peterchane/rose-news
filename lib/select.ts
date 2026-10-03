@@ -18,6 +18,11 @@ export type Cluster = {
   coverage: { source: string; link: string }[];
   publishedAt: Date;
   score: number;
+  /**
+   * Set by lib/choose.ts: the day's top news, or one of her interests. The
+   * writer is shown the two groups separately and must cover both.
+   */
+  tier?: 'top' | 'interest';
 };
 
 const STOPWORDS = new Set([

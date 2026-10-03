@@ -8,7 +8,7 @@ import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
 import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT } from './teams';
 import { todaysHolidayNote } from './jewish';
-import { filterByRelevance } from './relevance';
+import { chooseStories } from './choose';
 import { todayPT } from './schedule';
 import { fetchCredits, lowBalanceWarning } from './credits';
 
@@ -32,7 +32,11 @@ export async function buildBrief(): Promise<PipelineResult> {
   console.log(`[feeds] ${config.feeds.length} sources from ${config.origin}`);
 
   const { articles, failures } = await ingest(config.feeds);
-  const clusters = selectClusters(articles, config.quotas, TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT);
+  // The whole ranked field, with no per-section quotas: quotas filled slots
+  // ("some science, some business"), and the slot-filling is where the niche
+  // stories came from. chooseStories picks from this instead.
+  const unlimited = Object.fromEntries(Object.keys(config.quotas).map((k) => [k, 999])) as typeof config.quotas;
+  const clusters = selectClusters(articles, unlimited, TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT);
 
   if (clusters.length < MIN_CLUSTERS) {
     throw new ThinNewsDayError(
@@ -63,18 +67,12 @@ export async function buildBrief(): Promise<PipelineResult> {
     console.log(`[repeat] dropped ${dropped.length} already-covered: ${dropped.map((c) => c.title.slice(0, 40)).join(' | ')}`);
   }
 
-  // Relevance is judged, not pattern-matched: niche, far-away and not-really-
-  // news items are dropped before the writer can spend a paragraph on them.
-  // Fails open, so a scorer outage only means the old behaviour.
-  const relevance = await filterByRelevance(kept);
-  if (relevance.dropped.length) {
-    console.log(
-      `[relevance] dropped ${relevance.dropped.length}: ` +
-        relevance.dropped.map((d) => `${d.score} ${d.cluster.title.slice(0, 36)}`).join(' | '),
-    );
-  }
+  // Two groups and nothing else: the day's top news, and her interests.
+  const { top, interests } = await chooseStories(kept);
+  console.log(`[choose] top: ${top.map((c) => c.title.slice(0, 34)).join(' | ')}`);
+  console.log(`[choose] interests: ${interests.map((c) => c.title.slice(0, 34)).join(' | ') || 'none today'}`);
   // Renumbered so the ids the writer cites stay contiguous.
-  const relevant = relevance.kept.map((c, i) => ({ ...c, id: i + 1 }));
+  const relevant = [...top, ...interests].map((c, i) => ({ ...c, id: i + 1 }));
 
   const brief = await writeBrief(relevant, previous);
   // Never blocks the brief: an unavailable forecast just means no weather line.

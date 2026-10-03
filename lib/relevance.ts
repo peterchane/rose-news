@@ -37,7 +37,7 @@ const INSTRUCTIONS = `You are choosing stories for a daily news email to Rose: 1
 
 Score each headline 0-10 for whether it belongs in her email.
 
-8-10: genuinely top national or world news — what every major outlet is leading with — or news squarely in her interests: USC and its football, the Cubs, SMU or Michigan football, Los Angeles and California, AI and the big tech companies, national politics and the economy.
+8-10: genuinely top national or world news — what every major outlet is leading with — or news squarely in her interests: USC and its football, the Cubs, SMU or Michigan football, Los Angeles and California (including LA weather), journalism, PR, pop culture and the media business, AI and the big tech companies, national politics and the economy.
 5-7: solid news a well-read 18-year-old would want to know.
 0-4: niche, local to somewhere else, or not really news — a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a press release, an incremental update few outlets care about.
 

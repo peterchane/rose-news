@@ -332,3 +332,10 @@ test('a repeated failure escalates to a different model', async () => {
   assert.equal(brief.degraded, undefined, 'a later model produced a real brief');
   assert.deepEqual(startedAt, [0, 0, 1, 2], 'the chain walks forward on retries');
 });
+
+test('a spending cap fails fast and says so', () => {
+  // "API key budget exceeded. Current spend: $10.11, limit: $10.00" was retried
+  // on every model and reported as an unparseable response.
+  assert.ok(isUnretryable('API key budget exceeded. Current spend: $10.11, limit: $10.00.'));
+  assert.ok(isUnretryable('Monthly spend limit reached for this team'));
+});

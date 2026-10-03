@@ -32,15 +32,22 @@ const CHABAD_LINKS: [RegExp, string][] = [
  * B'Av, Rosh Chodesh, the fast days — are deliberately excluded: they'd fill
  * this slot most weeks and turn a heads-up into noise.
  */
-const MAJOR_HOLIDAYS =
-  /(rosh hashana|yom kippur|sukkot|sukkos|shmini atzeret|simchat torah|chanukah|hanukkah|purim|pesach|passover|shavuot|shavuos)/i;
+/**
+ * The four holidays most American Jewish families actually mark. Peter, on
+ * Shmini Atzeret appearing at the top of an email: "that jewish holiday is
+ * niche not major." Sukkot's intermediate days had already been showing up as
+ * "Sukkot III (CH''M)", which is a calendar entry, not a holiday.
+ */
+const MAJOR_HOLIDAYS = /(rosh hashana|yom kippur|chanukah|hanukkah|pesach|passover)/i;
 
 /**
  * Minor observances whose names collide with the major ones. "Rosh Hashana
  * LaBehemot" is the new year for animals — it matches MAJOR_HOLIDAYS and would
  * otherwise be announced a month before actual Rosh Hashana.
  */
-const NOT_MAJOR = /(labehemot|la'?behemot|selichot|shushan|katan|pesach sheni|chol hamoed)/i;
+// Intermediate days and later Hanukkah nights are the same holiday again, not
+// a new one. Hebcal spells chol hamoed "CH''M".
+const NOT_MAJOR = /(labehemot|la'?behemot|selichot|shushan|katan|pesach sheni|chol hamoed|ch'+m|chanukah: [2-8] candles?)/i;
 
 export type Holiday = {
   title: string;

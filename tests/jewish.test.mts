@@ -40,7 +40,7 @@ test('links to the Chabad page for the holiday', () => {
 });
 
 test('falls back to the Chabad index for an unmapped holiday', () => {
-  const h = pickNextHoliday([{ title: 'Sukkot', date: '2026-10-01', category: 'holiday' }], '2026-09-30')!;
+  const h = pickNextHoliday([{ title: 'Pesach II', date: '2026-10-01', category: 'holiday' }], '2026-09-30')!;
   assert.match(h.link, /chabad\.org/);
 });
 
@@ -81,11 +81,8 @@ test('only major holidays are announced', () => {
   assert.equal(pickNextHoliday(minor, '2026-01-01'), null, 'none of these qualify');
 });
 
-test('all eight major holidays do qualify', () => {
-  for (const title of [
-    'Erev Rosh Hashana', 'Yom Kippur', 'Sukkot', 'Simchat Torah',
-    'Chanukah: 1 Candle', 'Purim', 'Erev Pesach', 'Shavuot',
-  ]) {
+test('the four major holidays qualify', () => {
+  for (const title of ['Erev Rosh Hashana', 'Yom Kippur', 'Chanukah: 1 Candle', 'Erev Pesach']) {
     const h = pickNextHoliday([{ title, date: '2026-12-01', category: 'holiday' }], '2026-11-01');
     assert.ok(h, `${title} should qualify`);
     assert.match(h!.link, /chabad\.org/);
@@ -166,5 +163,19 @@ test('a real response produces a citable candidate on a reminder day', async () 
     assert.match(c!.blurb, /September 11/);
   } finally {
     globalThis.fetch = real;
+  }
+});
+
+test('the niche holidays are left out', () => {
+  // Peter: "that jewish holiday is niche not major."
+  for (const title of [
+    'Shmini Atzeret', 'Simchat Torah', 'Sukkot', "Sukkot III (CH''M)", 'Purim', 'Shavuot',
+    'Chanukah: 3 Candles', "Pesach III (CH''M)",
+  ]) {
+    assert.equal(
+      pickNextHoliday([{ title, date: '2026-12-01', category: 'holiday' }], '2026-11-01'),
+      null,
+      `${title} should not qualify`,
+    );
   }
 });
