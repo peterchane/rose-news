@@ -125,7 +125,13 @@ const VIOLENT_CRIME = new RegExp(
     // A person as the killer, never a weapon or army — so "Airstrike kills
     // dozens" and "Barrage kills 17" are correctly left alone.
     /\b(boy|girl|man|woman|teen|teenager|student|pupil|father|mother|son|daughter|husband|wife|suspect|attacker|driver)\s+(kills?|killed|shoots?|shot|stabb\w*|murder\w*)\b/,
-    /\b(shooter|gunman|mass shooting|school shooting|serial killer|manhunt)\b/,
+    /\b(shooter|gunman|gunmen|mass shooting|school shooting|serial killer|manhunt)\b/,
+    // One person attacking another, however the weapon is named. "The Flydubai
+    // co-pilot who attacked his captain mid-flight used a crash axe" matched
+    // nothing: no verb on the list, no weapon on the list.
+    /\b(attack(ed|s|ing)?|assault(ed|s|ing)?|beat|punched|struck|bludgeon\w*)\s+(his|her|their|a|an|the)\s+(\w+\s+)?(captain|pilot|wife|husband|partner|girlfriend|boyfriend|child|son|daughter|mother|father|neighbou?r|colleague|coworker|teacher|student|officer|passenger|victim)\b/,
+    /\b(axe|machete|hatchet|hammer|crowbar|blade)\b.{0,30}\b(attack\w*|assault\w*|wield\w*|swung|struck|used)\b/,
+    /\b(attack\w*|assault\w*|wield\w*|swung|armed)\b.{0,30}\b(axe|machete|hatchet|hammer|crowbar|knife|blade)\b/,
     /\bopen(s|ed)? fire\b/,
     /\b(stabs?|stabb\w*)\b/,
     /\bmurder\w*/,

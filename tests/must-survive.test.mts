@@ -54,6 +54,9 @@ const MUST_SURVIVE = [
   'California requires financial literacy courses in every high school',
   'Solar power passes 3 terawatts worldwide',
   'CBS News poll finds voters split on the economy',
+  'Ukraine says Russia attacked its power grid overnight',
+  'Hackers attacked the city water system, officials say',
+  'Knife-edge vote expected in the Senate',
 ];
 
 test('ordinary news survives the content filters', () => {
@@ -94,6 +97,11 @@ const MUST_BLOCK = [
   'Tonight on 60 Minutes: an interview with the governor',
   'Full episode: Face the Nation, September 27',
   'Coming up on Meet the Press this Sunday',
+  // One person attacking another. The Flydubai axe attack matched no verb and
+  // no weapon on the list, and took a paragraph.
+  'UAE says the Flydubai co-pilot who attacked his captain mid-flight used a crash axe',
+  'Man attacked his neighbour with a hammer',
+  'Passenger armed with a knife subdued on a flight',
 ];
 
 test('word variants do not slip past the filters', () => {
