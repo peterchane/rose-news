@@ -402,6 +402,7 @@ test('drugs and mental health are out unless the whole press is on it', async ()
     'Weight-loss drug shows unexpected side effects',
     'Teen vaping rates fall to a record low',
     'New study links anxiety to screen time',
+    'A federal ban on hemp-derived THC drinks takes effect at the end of the year',
   ]) {
     assert.ok(!isMainstreamEnough(t, 1), `one outlet is not mainstream: ${t}`);
     assert.ok(isMainstreamEnough(t, MAINSTREAM_SOURCES), `every desk running it is: ${t}`);

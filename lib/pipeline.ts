@@ -8,6 +8,7 @@ import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
 import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT } from './teams';
 import { todaysHolidayNote } from './jewish';
+import { filterByRelevance } from './relevance';
 import { todayPT } from './schedule';
 import { fetchCredits, lowBalanceWarning } from './credits';
 
@@ -62,11 +63,24 @@ export async function buildBrief(): Promise<PipelineResult> {
     console.log(`[repeat] dropped ${dropped.length} already-covered: ${dropped.map((c) => c.title.slice(0, 40)).join(' | ')}`);
   }
 
-  const brief = await writeBrief(kept, previous);
+  // Relevance is judged, not pattern-matched: niche, far-away and not-really-
+  // news items are dropped before the writer can spend a paragraph on them.
+  // Fails open, so a scorer outage only means the old behaviour.
+  const relevance = await filterByRelevance(kept);
+  if (relevance.dropped.length) {
+    console.log(
+      `[relevance] dropped ${relevance.dropped.length}: ` +
+        relevance.dropped.map((d) => `${d.score} ${d.cluster.title.slice(0, 36)}`).join(' | '),
+    );
+  }
+  // Renumbered so the ids the writer cites stay contiguous.
+  const relevant = relevance.kept.map((c, i) => ({ ...c, id: i + 1 }));
+
+  const brief = await writeBrief(relevant, previous);
   // Never blocks the brief: an unavailable forecast just means no weather line.
   const [weather, holiday] = await Promise.all([todaysWeatherNote(), todaysHolidayNote(todayPT())]);
   if (holiday) console.log(`[jewish] ${holiday}`);
-  const rendered = renderBrief(brief, kept, weather, holiday);
+  const rendered = renderBrief(brief, relevant, weather, holiday);
 
-  return { brief, rendered, clusters: kept, failures, degraded: brief.degraded };
+  return { brief, rendered, clusters: relevant, failures, degraded: brief.degraded };
 }

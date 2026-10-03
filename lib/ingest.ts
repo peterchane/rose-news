@@ -159,7 +159,7 @@ export function isViolentCrime(title: string): boolean {
 
 /**
  * School shootings, absolutely and always. Peter's instruction was "never".
- * Rose is a high school student; this is the one subject where a near-miss is
+ * Rose is a student; this is the one subject where a near-miss is
  * unacceptable, so it's matched broadly and checked against the summary too,
  * not just the headline.
  */
@@ -405,7 +405,7 @@ const VENOM = /\b(venom\w*|antivenom|snakebite|snake bite|rattlesnake|bitten by|
  */
 const DRUGS_OR_MENTAL_HEALTH = new RegExp(
   [
-    /\b(drugs?|narcotics?|opioids?|heroin|cocaine|fentanyl|meth(amphetamine)?|opium|ecstasy|ketamine|vaping|vape|edibles?|cannabis|marijuana|psychedelics?)\b/,
+    /\b(drugs?|narcotics?|opioids?|heroin|cocaine|fentanyl|meth(amphetamine)?|opium|ecstasy|ketamine|vaping|vape|edibles?|cannabis|marijuana|psychedelics?|thc|cbd|hemp|weed|kratom|nicotine pouch\w*|zyn)\b/,
     /\b(ozempic|wegovy|zepbound|mounjaro|adderall|xanax|oxycontin|percocet|ambien|prozac|zoloft|lexapro|ritalin|semaglutide)\b/,
     /\b(mental health|depression|depressive|anxiety|bipolar|schizophreni\w*|ptsd|panic attacks?|therapy|therapist|psychiatric|antidepressant\w*)\b/,
     /\b(addiction|addicted|rehab|overdos\w*|withdrawal symptoms?|sober(iety)?)\b/,

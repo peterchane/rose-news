@@ -316,7 +316,7 @@ const TRIVIA = new RegExp(
 /**
  * A campaign in one other state.
  *
- * Rose is sixteen and in California; a profile of a Senate candidate in Alaska
+ * Rose is 18 and at USC in Los Angeles; a profile of a Senate candidate in Alaska
  * is neither something she can act on nor something that reaches her. National
  * races and California's own still count as news.
  */
