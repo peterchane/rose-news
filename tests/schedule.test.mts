@@ -62,3 +62,19 @@ test('the real notes.txt has usable content', async () => {
   assert.ok(notes.length >= 1);
   for (const n of notes) assert.ok(n.length < 200, 'notes stay short');
 });
+
+test('a date in skip.txt gets no email', async () => {
+  const { parseSkipDates, isSkipDay } = await import('../lib/schedule');
+  const text = '# comment\n\n2026-10-04\nnot-a-date\n2026-12-25\n';
+  assert.deepEqual([...parseSkipDates(text)].sort(), ['2026-10-04', '2026-12-25']);
+  assert.equal(isSkipDay('2026-10-04', text), true);
+  assert.equal(isSkipDay('2026-10-05', text), false, 'the next day sends as normal');
+});
+
+test('the real skip.txt skips Sunday Oct 4 and nothing else this week', async () => {
+  const { isSkipDay } = await import('../lib/schedule');
+  assert.equal(isSkipDay('2026-10-04'), true);
+  for (const d of ['2026-10-03', '2026-10-05', '2026-10-06']) {
+    assert.equal(isSkipDay(d), false, `${d} must still send`);
+  }
+});

@@ -1,0 +1,5 @@
+# Days Rose gets no email. One date per line, YYYY-MM-DD, Pacific time.
+# Lines starting with # are ignored. Delete a date to send that day after all.
+
+# Sunday off while the AI spending cap is hit (see the Oct 3 notes).
+2026-10-04

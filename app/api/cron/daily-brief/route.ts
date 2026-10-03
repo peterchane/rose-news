@@ -1,6 +1,6 @@
 import { alreadySentToday, archiveBrief } from '@/lib/archive';
 import { buildBrief } from '@/lib/pipeline';
-import { currentHourPT, isDeliveryHour, TARGET_HOUR_PT } from '@/lib/schedule';
+import { currentHourPT, isDeliveryHour, isSkipDay, TARGET_HOUR_PT, todayPT } from '@/lib/schedule';
 import { sendBrief, sendFailureAlert } from '@/lib/send';
 import { fetchCredits, lowBalanceWarning } from '@/lib/credits';
 
@@ -26,6 +26,11 @@ export async function GET(req: Request) {
       hourPT: currentHourPT(),
       targetHourPT: TARGET_HOUR_PT,
     });
+  }
+
+  // A day off, by Peter's say-so in skip.txt.
+  if (!force && isSkipDay()) {
+    return Response.json({ ok: true, skipped: 'skip-day', date: todayPT() });
   }
 
   if (!force && (await alreadySentToday())) {

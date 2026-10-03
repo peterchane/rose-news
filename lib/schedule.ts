@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 /** The hour, in Pacific time, the brief should land. */
 export const TARGET_HOUR_PT = 8;
 export const TIMEZONE = 'America/Los_Angeles';
@@ -50,4 +52,28 @@ export function dailySubject(date: string = todayPT()): string {
     timeZone: 'UTC',
   });
   return `Rose News: ${weekday}, ${MONTHS[m - 1]} ${d}`;
+}
+
+/**
+ * Days Rose gets no email, from skip.txt at the repo root. Peter edits that file
+ * directly, the same way he edits feeds, teams and notes.
+ */
+export function parseSkipDates(text: string): Set<string> {
+  const dates = new Set<string>();
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(line)) dates.add(line);
+  }
+  return dates;
+}
+
+export function isSkipDay(date: string = todayPT(), text?: string): boolean {
+  try {
+    const body = text ?? readFileSync(join(process.cwd(), 'skip.txt'), 'utf8');
+    return parseSkipDates(body).has(date);
+  } catch {
+    // No file means no skip days. Never let this stop a send.
+    return false;
+  }
 }
