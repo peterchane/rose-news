@@ -98,17 +98,38 @@ function when(name: string): string {
 export const HEAT_F = 93;
 
 function heatNote(periods: Period[]): string | null {
-  const days = periods.filter((p) => p.isDaytime).slice(0, LOOKAHEAD_DAYS);
-  const start = days.findIndex((d) => d.temperature >= HEAT_F);
+  const week = periods.filter((p) => p.isDaytime);
+  // Heat has to be near-term to be worth leading with.
+  const start = week.slice(0, LOOKAHEAD_DAYS).findIndex((d) => d.temperature >= HEAT_F);
   if (start === -1) return null;
 
   let end = start;
-  while (end + 1 < days.length && days[end + 1].temperature >= HEAT_F) end++;
-  const peak = Math.max(...days.slice(start, end + 1).map((d) => d.temperature));
+  while (end + 1 < week.length && week[end + 1].temperature >= HEAT_F) end++;
+  const peak = Math.max(...week.slice(start, end + 1).map((d) => d.temperature));
 
-  if (start > 0) return `A heat wave arrives ${days[start].name}, with highs near ${peak}°F.`;
-  if (end === 0) return `Hot today, with a high near ${peak}°F.`;
-  return `Heat wave: highs near ${peak}°F through ${days[end].name}.`;
+  const heat =
+    start > 0
+      ? `A heat wave arrives ${week[start].name}, with highs near ${peak}°F through ${week[end].name}.`
+      : end === 0
+        ? `Hot today, with a high near ${peak}°F.`
+        : `Heat wave: highs near ${peak}°F through ${week[end].name}.`;
+
+  return `${heat} ${coolDown(week, end)}`;
+}
+
+/**
+ * Whether and when it cools off. Peter: "include an article about the weather
+ * for this week in LA and if it should cool down." The heat line said how hot
+ * and how long; this is the part she actually wants to know.
+ */
+function coolDown(week: Period[], lastHotDay: number): string {
+  const after = week.slice(lastHotDay + 1);
+  if (after.length === 0) return 'No break in the forecast yet.';
+  const first = after[0];
+  const coolest = after.reduce((low, d) => (d.temperature < low.temperature ? d : low), first);
+  return coolest === first
+    ? `It cools off ${first.name}, down to ${first.temperature}°F.`
+    : `It cools off ${first.name} (${first.temperature}°F), down to ${coolest.temperature}°F by ${coolest.name}.`;
 }
 
 /** How far ahead to look for heat; beyond this the forecast is too soft to say. */

@@ -207,19 +207,24 @@ test('an access or billing failure fails fast instead of retrying', async () => 
     calls++;
     throw new Error('Free tier users do not have access to this model. Upgrade to paid credits.');
   };
-  await assert.rejects(() => writeBrief(clusters, null, draft), BriefConfigError);
+  const brief = await writeBrief(clusters, null, draft);
   assert.equal(calls, 1, 'stopped after the first attempt');
+  // A blocked account must never cost Rose the email: it used to throw here
+  // and she got nothing. Now she gets headlines and the owner is told why.
+  assert.ok(brief.degraded, 'headlines fallback, flagged');
+  assert.ok(brief.paragraphs.length > 1, 'and she still gets an email');
 });
 
 test('the alert names the real cause, not a parse error', async () => {
+  // The Oct 3 cap was reported as "could not be parsed" — the same misleading
+  // error as Aug 10. The owner's alert carries this reason, so it must be true.
   const draft: DraftFn = async () => {
-    throw new Error('Free tier users do not have access to this model.');
+    throw new Error('API key budget exceeded. Current spend: $10.11, limit: $10.00.');
   };
-  await writeBrief(clusters, null, draft).catch((e) => {
-    assert.match(e.message, /not usable by this account/);
-    assert.match(e.message, /Add credits/);
-    assert.ok(!/could not be parsed/.test(e.message));
-  });
+  const brief = await writeBrief(clusters, null, draft);
+  assert.match(brief.degraded!, /budget exceeded/);
+  assert.match(brief.degraded!, /ai-gateway\/budgets/, 'and says where to fix it');
+  assert.doesNotMatch(brief.degraded!, /could not be parsed/);
 });
 
 test('classifies retryable and unretryable failures correctly', () => {
@@ -254,9 +259,11 @@ test('an access error on one model does not fail the run outright', async () => 
     if (attempt === 1) throw new Error('Free tier users do not have access to this model.');
     return wrap(good);
   };
-  // writeBrief treats an access error as fatal because the chain lives inside
-  // defaultDraft; a custom draft that recovers should still be honoured.
-  await assert.rejects(() => writeBrief(clusters, null, draft), BriefConfigError);
+  // The chain lives inside defaultDraft, so writeBrief treats an access error
+  // as "no usable model" and stops — but it still sends the headlines.
+  const brief = await writeBrief(clusters, null, draft);
+  assert.ok(brief.degraded);
+  assert.ok(brief.paragraphs.length > 1, 'never nothing');
 });
 
 test('pivots are split out before validation, so they cannot fail a brief', async () => {

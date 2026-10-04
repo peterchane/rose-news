@@ -102,6 +102,9 @@ const MUST_BLOCK = [
   'UAE says the Flydubai co-pilot who attacked his captain mid-flight used a crash axe',
   'Man attacked his neighbour with a hammer',
   'Passenger armed with a knife subdued on a flight',
+  // A missing aircraft is a crash story until it isn't.
+  'Debris found from plane that went missing off US coast',
+  'Small medical plane carrying six loses contact on Bermuda to Boston flight',
 ];
 
 test('word variants do not slip past the filters', () => {

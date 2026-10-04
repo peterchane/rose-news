@@ -76,11 +76,14 @@ test('a heat wave says how hot and how long', () => {
     day('Today', 100), night('Tonight', 80), day('Sunday', 100), night('Sunday Night', 77),
     day('Monday', 98), night('Monday Night', 78), day('Tuesday', 97),
   ];
-  assert.equal(weatherNote(wave), 'Heat wave: highs near 100°F through Tuesday.');
-  assert.equal(weatherNote([day('Today', 93), day('Sunday', 80)]), 'Hot today, with a high near 93°F.');
+  assert.equal(weatherNote(wave), 'Heat wave: highs near 100°F through Tuesday. No break in the forecast yet.');
+  assert.equal(
+    weatherNote([day('Today', 93), day('Sunday', 80)]),
+    'Hot today, with a high near 93°F. It cools off Sunday, down to 80°F.',
+  );
   assert.equal(
     weatherNote([day('Today', 78), day('Sunday', 95), day('Monday', 97)]),
-    'A heat wave arrives Sunday, with highs near 97°F.',
+    'A heat wave arrives Sunday, with highs near 97°F through Monday. No break in the forecast yet.',
   );
 });
 
@@ -234,4 +237,17 @@ test('the line states the weather and stops, with no advice attached', () => {
     assert.doesNotMatch(line, /—/, `no trailing clause: ${line}`);
     assert.match(line, /\.$/, `one clean sentence: ${line}`);
   }
+});
+
+test('the heat line says whether and when it cools down', () => {
+  // Peter: "include an article about the weather for this week in LA and if
+  // it should cool down." The real week of Oct 4: 103, 101, 97, 95, 94, 89, 82.
+  const week = [
+    day('This Afternoon', 103), day('Monday', 101), day('Tuesday', 97),
+    day('Wednesday', 95), day('Thursday', 94), day('Friday', 89), day('Saturday', 82),
+  ];
+  assert.equal(
+    weatherNote(week),
+    'Heat wave: highs near 103°F through Thursday. It cools off Friday (89°F), down to 82°F by Saturday.',
+  );
 });

@@ -333,6 +333,10 @@ const DISTRESSING = new RegExp(
     /\b(seiz\w+|smuggl\w+|traffick\w+|raid\w*)\b.{0,40}\b(cocaine|heroin|fentanyl|meth|opioids?|narcotics?|drugs?|pills?)\b/,
     /\b(cocaine|heroin|fentanyl|meth|opioids?|narcotics?)\b.{0,40}\b(seiz\w+|smuggl\w+|bust|raid|arrests?)\b/,
     /\b(plane|helicopter|bus|train|ferry) (crash|crashes|crashed|capsiz)\w*/,
+    // An aircraft gone missing is a crash story until it isn't. "Debris found
+    // from plane that went missing off US coast" named no crash and no death.
+    /\b(debris|wreckage|remains)\b.{0,40}\b(plane|aircraft|jet|helicopter|boat|ship|vessel|flight)\b/,
+    /\b(plane|aircraft|jet|helicopter|flight|vessel|boat)\b.{0,40}\b(missing|disappear\w*|los(es|t|ing) contact|went down|goes down|vanish\w*|search under ?way)\b/,
 
     // A lawsuit being FILED decides nothing — it's a press release with a
     // docket number. A court RULING is news and is deliberately not matched

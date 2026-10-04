@@ -839,6 +839,7 @@ export async function writeBrief(
 
   let lastProblems: string[] = [];
   let best: { draft: Brief; problems: number } | null = null;
+  let configError: string | null = null;
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     const prompt =
@@ -895,17 +896,26 @@ export async function writeBrief(
         return candidate;
       }
     } catch (err) {
+      // No usable model at all (every one blocked or out of budget). Stop
+      // retrying — it cannot work — but still send her the headlines.
+      if (err instanceof BriefConfigError) {
+        configError = err.message;
+        break;
+      }
+
       // A malformed or unparseable model response is retryable, not fatal.
       // Letting it escape is what silently killed a day's brief.
       const e = err as { message?: string; finishReason?: string; text?: string; cause?: { message?: string } };
       const message = e?.message?.split('\n')[0] ?? String(err);
 
       // Fail fast and truthfully rather than retrying something that cannot work.
+      // Fail fast and truthfully — but a spending cap must never cost Rose
+      // the email. It used to throw here, which sent her nothing at all.
       if (isUnretryable(message)) {
-        throw new BriefConfigError(
-          `${MODEL} is not usable by this account: ${message} ` +
-            'Add credits at https://vercel.com/dashboard → AI Gateway, or set BRIEF_MODEL to a model the account can use.',
-        );
+        configError =
+          `${message} Raise the limit at https://vercel.com/peter-ch/~/ai-gateway/budgets?dimension=api-key ` +
+          'or add credits in AI Gateway.';
+        break;
       }
 
       // The cause carries the actual schema mismatch; without it the log says
@@ -933,7 +943,7 @@ export async function writeBrief(
   // Every retry is spent and no draft survived. Rose still gets an email:
   // headlines and links, assembled in code, which cannot fail the way prose
   // can. Twice this exact point produced silence instead.
-  const why = lastProblems.map(problemText).join(' | ');
+  const why = configError ?? lastProblems.map(problemText).join(' | ');
   console.error(`[write] all ${ATTEMPTS} attempts failed (${why}); sending headlines only`);
   return {
     subject: dailySubject(),

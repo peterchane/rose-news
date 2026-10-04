@@ -113,3 +113,21 @@ test('a decent earlier draft is sent rather than the headline fallback', async (
   assert.ok(!brief.paragraphs.includes(FALLBACK_NOTE));
   assert.ok(brief.paragraphs.some((p) => p.includes('#6')), 'the real draft was sent');
 });
+
+test('fallback text reads cleanly: no entities, no sentence cut at an initial', async () => {
+  // With the AI blocked, the fallback prints titles and summaries verbatim, and
+  // a test run showed "won&#039;t" and a summary cut off at "E.l.f.".
+  const base = { link: 'https://e.com/x', coverage: [], publishedAt: new Date(), score: 1, section: 'us' as const };
+  const [a, b, c] = fallbackParagraphs([
+    { ...base, id: 1, source: 'ESPN', title: "Chris Sale won&#039;t start NLDS Game 2",
+      blurb: 'Sale came out of the bullpen on Thursday against the Dodgers. More to come.' },
+    { ...base, id: 2, source: 'CNBC', title: 'Why brands are branching out into original music',
+      blurb: 'E.l.f. and Wendy’s are both releasing songs this fall to reach younger fans. Others may follow.' },
+    { ...base, id: 3, source: 'NYT', title: 'U.S. withdraws bombers from a U.K. base',
+      blurb: 'The withdrawal came with unusual speed, following what U.S. officials called credible new threats. It was announced late Friday.' },
+  ]);
+  assert.match(a, /won't/);
+  assert.doesNotMatch(a, /&#/);
+  assert.match(b, /releasing songs this fall/, 'not cut off at "E.l.f."');
+  assert.match(c, /credible new threats/, 'not cut off at "U.S."');
+});

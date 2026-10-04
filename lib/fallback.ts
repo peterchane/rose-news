@@ -54,17 +54,47 @@ function pickAcrossSections(clusters: Cluster[], max: number): Cluster[] {
   return picked;
 }
 
-/** Feed titles arrive with outlet suffixes, stray whitespace and trailing punctuation. */
-function tidy(title: string): string {
-  return title.replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim();
+/**
+ * HTML entities survive in some feed titles ("won&#039;t"). The writer cleans
+ * them up when it rewrites a story; the fallback prints titles verbatim, so it
+ * has to do it here.
+ */
+function decode(s: string): string {
+  return s
+    .replace(/&#0*39;|&#x0*27;|&apos;|&rsquo;|&lsquo;/gi, "'")
+    .replace(/&quot;|&#0*34;|&ldquo;|&rdquo;/gi, '"')
+    .replace(/&amp;|&#0*38;/gi, '&')
+    .replace(/&#x2019;|&#8217;/gi, "'")
+    .replace(/&#x2014;|&#8212;|&mdash;/gi, '—')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
 }
 
+/** Feed titles arrive with entities, stray whitespace and trailing punctuation. */
+function tidy(title: string): string {
+  return decode(title).replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim();
+}
+
+/**
+ * The first real sentence of a summary. A period after an initial or an
+ * abbreviation is not a sentence end: "E.l.f." and "U.S." both cut summaries
+ * off mid-thought.
+ */
 function firstSentence(blurb: string): string {
-  const clean = (blurb ?? '').replace(/\s+/g, ' ').trim();
+  const clean = decode(blurb ?? '').replace(/\s+/g, ' ').trim();
   if (!clean) return '';
-  const end = clean.search(/[.!?]\s/);
-  const sentence = end === -1 ? clean : clean.slice(0, end + 1);
-  return sentence.length > 220 ? '' : sentence;
+  const ends = /[.!?](?=\s+[A-Z"'])/g;
+  let m: RegExpExecArray | null;
+  while ((m = ends.exec(clean))) {
+    const candidate = clean.slice(0, m.index + 1);
+    const lastWord = candidate.split(' ').pop() ?? '';
+    // "U.S." "E.l.f." "Mr." "Dr." — a short token with an internal or single period.
+    const abbreviation = /^([A-Za-z]\.)+$|^[A-Z][a-z]{0,2}\.$|\b[A-Z]\.[A-Za-z]/.test(lastWord);
+    if (!abbreviation && candidate.length >= 40) {
+      return candidate.length > 220 ? '' : candidate;
+    }
+  }
+  return clean.length > 220 ? '' : clean;
 }
 
 /** Said plainly at the top, because a short email with no explanation reads as broken. */
