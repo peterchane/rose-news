@@ -16,15 +16,15 @@ import { fallbackParagraphs, FALLBACK_NOTE } from './fallback';
  */
 export const MODEL_CHAIN: string[] = [
   process.env.BRIEF_MODEL,
-  // Peter's order. Opus writes it; the rest are there for a bad morning, and
-  // each one is a different lab so a shared failure mode can't take them all.
-  'anthropic/claude-opus-5',
-  'anthropic/claude-opus-5.5',
-  'openai/gpt-5-fast',
+  // Peter: "use haiku 5.5 or gemini. both are low cost." About a tenth of a
+  // cent and half a cent per email respectively. Different labs, so one
+  // provider's bad morning can't take out both.
+  'anthropic/claude-haiku-5.5',
   'google/gemini-3-flash',
-  // Held in reserve, only reached if everything above is unavailable.
-  'anthropic/claude-sonnet-5',
+  // Reserve, only reached if both of the above fail or are unavailable.
   'google/gemini-2.5-flash',
+  'openai/gpt-5-mini',
+  'anthropic/claude-sonnet-5',
 ].filter((m): m is string => Boolean(m));
 
 /** The first entry, used for logging. */

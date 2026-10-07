@@ -9,7 +9,7 @@
 // dry runs on Opus burned through the $10 AI Gateway cap and Rose's next email
 // failed. Her real email still uses Opus; this only changes test runs.
 // Override with BRIEF_MODEL=... to test a specific model on purpose.
-if (!process.env.BRIEF_MODEL) process.env.BRIEF_MODEL = 'google/gemini-3-flash';
+if (!process.env.BRIEF_MODEL) process.env.BRIEF_MODEL = 'anthropic/claude-haiku-5.5';
 
 const { buildBrief } = await import('../lib/pipeline');
 
