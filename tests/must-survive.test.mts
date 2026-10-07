@@ -105,6 +105,8 @@ const MUST_BLOCK = [
   // A missing aircraft is a crash story until it isn't.
   'Debris found from plane that went missing off US coast',
   'Small medical plane carrying six loses contact on Bermuda to Boston flight',
+  // Disease, however the adjective is formed: "rabid" walked past "rabies".
+  'LA officials document first case of a rabid raccoon in over 50 years',
 ];
 
 test('word variants do not slip past the filters', () => {

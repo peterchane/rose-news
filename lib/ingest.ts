@@ -320,7 +320,7 @@ const DISTRESSING = new RegExp(
     // nowhere in this filter and the recall wording was "upgraded to", not
     // "recalled over".
     /\be\.? ?coli\b/,
-    /\b(salmonella|listeria|norovirus|botulism|legionella|campylobacter|anthrax|rabies|mpox|monkeypox|bird flu|avian (influenza|flu)|h5n1|west nile|dengue|zika|hepatitis|meningitis|rsv\b|whooping cough|polio)\b/,
+    /\b(salmonella|listeria|norovirus|botulism|legionella|campylobacter|anthrax|rabi(es|d)|mpox|monkeypox|bird flu|avian (influenza|flu)|h5n1|west nile|dengue|zika|hepatitis|meningitis|rsv\b|whooping cough|polio)\b/,
     // Food-safety recalls in any phrasing. Deliberately scoped to food and
     // health so an ordinary car or appliance recall is left alone.
     /\brecall\w*\b.{0,60}\b(coli|salmonella|listeria|contaminat|illness|outbreak|bacteria|pathogen|risk (level|category)|class (1|i|one) risk)\b/,
