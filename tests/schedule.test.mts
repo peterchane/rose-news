@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { isDeliveryHour, currentHourPT, todayPT } from '../lib/schedule';
-import { parseNotes } from '../lib/notes';
 
 /** The two cron entries registered in vercel.json. */
 const CRON_HOURS_UTC = [15, 16];
@@ -49,18 +48,6 @@ test('todayPT rolls over on Pacific time, not UTC', () => {
   // 05:00 UTC is still the previous evening in California.
   assert.equal(todayPT(new Date('2026-08-06T05:00:00Z')), '2026-08-05');
   assert.equal(todayPT(new Date('2026-08-06T16:00:00Z')), '2026-08-06');
-});
-
-test('notes file parses to one message per line, comments ignored', () => {
-  const notes = parseNotes('# heading\n\nFirst note\nSecond note\n');
-  assert.deepEqual(notes, ['First note', 'Second note']);
-});
-
-test('the real notes.txt has usable content', async () => {
-  const { readFileSync } = await import('node:fs');
-  const notes = parseNotes(readFileSync('notes.txt', 'utf8'));
-  assert.ok(notes.length >= 1);
-  for (const n of notes) assert.ok(n.length < 200, 'notes stay short');
 });
 
 test('a date in skip.txt gets no email', async () => {

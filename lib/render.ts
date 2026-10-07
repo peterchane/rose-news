@@ -1,6 +1,5 @@
 import { CITATION_RE, type Brief } from './write';
 import type { Cluster } from './select';
-import { noteForToday } from './notes';
 
 const LINK_COLOR = '#1a56b8';
 const TEXT_COLOR = '#1a1a1a';
@@ -76,7 +75,9 @@ export function renderBrief(
 ): RenderedBrief {
   const byId = new Map(clusters.map((c) => [c.id, c]));
   const cited = new Set<number>();
-  const note = noteForToday();
+  // A fixed sign-off. Peter: "remove the bottom messages from Dad. instead add
+  // 'Rose news email with love from Dad'." It replaced a rotating note.
+  const signoff = 'Rose news email with love from Dad';
 
   const bodyHtml = brief.paragraphs
     .map(
@@ -113,7 +114,7 @@ export function renderBrief(
                     : ''
                 }${bodyHtml}
 <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e5e5e2;font-size:14px;line-height:1.6;color:${TEXT_COLOR};">
-                  <strong style="color:${MUTED_COLOR};">Message from Dad:</strong> ${escapeHtml(note)}
+                  ${escapeHtml(signoff)}
                 </p>
               </td>
             </tr>
@@ -138,7 +139,7 @@ export function renderBrief(
     })
     .join('\n');
 
-  const text = `${weather ? `${weather}\n\n` : ''}${holiday ? `${holiday}\n\n` : ''}${textBody}\n\nMessage from Dad: ${note}\n\n---\nSOURCES\n${sources}\n`;
+  const text = `${weather ? `${weather}\n\n` : ''}${holiday ? `${holiday}\n\n` : ''}${textBody}\n\n${signoff}\n\n---\nSOURCES\n${sources}\n`;
 
   return { subject: brief.subject, html, text, citedIds: [...cited].sort((a, b) => a - b) };
 }

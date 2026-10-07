@@ -65,9 +65,11 @@ test('escapes a quote in a candidate URL rather than breaking the attribute', ()
   assert.ok(!/href="[^"]*"[a-z]/.test(out.html), 'no attribute injection');
 });
 
-test('includes the daily note and no date header', () => {
+test('signs off with love from Dad, and no date header', () => {
   const out = renderBrief(brief(['Something [happened](#1) today.']), clusters);
-  assert.match(out.html, /Message from Dad:/);
+  assert.match(out.html, /Rose news email with love from Dad/);
+  assert.match(out.text, /Rose news email with love from Dad/);
+  assert.doesNotMatch(out.html, /Message from Dad/, 'the rotating note is gone');
   assert.ok(!/Rose&rsquo;s Daily Brief|Rose's Daily Brief/.test(out.html));
 });
 

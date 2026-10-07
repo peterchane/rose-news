@@ -60,5 +60,5 @@ re-enable it. Don't add retries that fire on cosmetic problems.
 
 ## Config lives in text files
 
-`feeds.txt`, `teams.txt`, `notes.txt` at the repo root. The owner edits these
+`feeds.txt`, `teams.txt`, `skip.txt` at the repo root. The owner edits these
 directly — keep them readable and commented, and don't move settings into code.
