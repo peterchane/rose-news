@@ -16,11 +16,12 @@ import { fallbackParagraphs, FALLBACK_NOTE } from './fallback';
  */
 export const MODEL_CHAIN: string[] = [
   process.env.BRIEF_MODEL,
-  // Peter: "use haiku 5.5 or gemini. both are low cost." About a tenth of a
-  // cent and half a cent per email respectively. Different labs, so one
-  // provider's bad morning can't take out both.
-  'anthropic/claude-haiku-5.5',
+  // Peter: "use haiku 5.5 or gemini. both are low cost." Gemini leads because
+  // it has written this email cleanly before; Haiku 5.5 hasn't been tried on
+  // real news yet. Peter: "use haiku if it's better" — swap these two once a
+  // side-by-side says so. Different labs, so one bad morning can't take out both.
   'google/gemini-3-flash',
+  'anthropic/claude-haiku-5.5',
   // Reserve, only reached if both of the above fail or are unavailable.
   'google/gemini-2.5-flash',
   'openai/gpt-5-mini',
