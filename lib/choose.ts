@@ -62,6 +62,9 @@ export function isMediaOrCulture(title: string): boolean {
 /** A team she doesn't follow, only here for October. One story is plenty. */
 const POSTSEASON_ONLY_CAP = 1;
 
+/** How many keyword-matched interests go to the relevance check. */
+const INTEREST_POOL = 12;
+
 /** How deep into the ranking the relevance check looks for the top news. */
 const TOP_POOL = 15;
 
@@ -93,7 +96,7 @@ export async function chooseStories(all: Cluster[], score?: ScoreFn): Promise<Ch
   //    journalism, PR, pop culture and media.
   const taken = new Set(top.map((c) => c.id));
   let postseasonOnly = 0;
-  const interests = all
+  const possible = all
     .filter((c) => !taken.has(c.id))
     .filter((c) => {
       if (c.section === 'usc') return isBigUscStory(c.title);
@@ -101,6 +104,12 @@ export async function chooseStories(all: Cluster[], score?: ScoreFn): Promise<Ch
       if (c.section === 'jewish') return false; // added in code, not written
       return isLocalStory(c.title) || isMediaOrCulture(c.title);
     })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, INTEREST_POOL);
+  // Her interests are matched by keyword, so they get judged too: "Egyptian
+  // journalists plan weekend protest" matched "journalist" and went in unvetted.
+  const judged = (await filterByRelevance(possible, score, 0)).kept;
+  const interests = judged
     .sort((a, b) => b.score - a.score)
     .filter((c) => {
       // Three Dodgers stories crowded out everything else she follows.

@@ -37,9 +37,19 @@ const INSTRUCTIONS = `You are choosing stories for a daily news email to Rose: 1
 
 Score each headline 0-10 for whether it belongs in her email.
 
-8-10: genuinely top national or world news — what every major outlet is leading with — or news squarely in her interests: USC and its football, the Cubs, SMU or Michigan football, Los Angeles and California (including LA weather), journalism, PR, pop culture and the media business, AI and the big tech companies, national politics and the economy.
-5-7: solid news a well-read 18-year-old would want to know.
-0-4: niche, local to somewhere else, or not really news — a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a press release, an incremental update few outlets care about.
+8-10:
+- Genuinely top national news, or world news every major US outlet is leading with.
+- USC and its football; the Cubs, SMU or Michigan football when something notable happened.
+- Los Angeles and California.
+- Weather: a major US storm (hurricane, blizzard, major outbreak) or any California / LA weather.
+- The media business she wants to work near: US newsrooms, journalism, PR, streaming, Hollywood, pop culture moments everyone is talking about.
+- The biggest tech companies (Apple, Google, Meta, Microsoft, Amazon, Nvidia, OpenAI, Anthropic, Tesla, Netflix) or a major AI policy decision.
+5-7: solid US news a well-read 18-year-old would want to know.
+0-4:
+- Foreign news that isn't one of the day's biggest world stories, including press, protests or politics in another country.
+- Smaller tech and business: startups, funding rounds, a lesser-known company's IPO, a company merely "backed by" a big one.
+- Weather anywhere outside the US, or minor US weather.
+- Niche, local to somewhere else, or not really news: a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a viral photo, an incremental update.
 
 Be strict. A short email of real news beats a long one padded with niche items.`;
 
@@ -64,8 +74,14 @@ const defaultScore: ScoreFn = async (lines) => {
 export async function filterByRelevance(
   clusters: Cluster[],
   score: ScoreFn = defaultScore,
+  /**
+   * Never thin below this many. Ten for the top-news pool; zero for her
+   * interests, which are already a short list and must be judged individually —
+   * an Egyptian press protest got in as a "journalism interest" unjudged.
+   */
+  floor: number = KEEP_AT_LEAST,
 ): Promise<{ kept: Cluster[]; dropped: { cluster: Cluster; score: number }[] }> {
-  if (clusters.length <= KEEP_AT_LEAST) return { kept: clusters, dropped: [] };
+  if (clusters.length === 0 || clusters.length <= floor) return { kept: clusters, dropped: [] };
 
   // The holiday line is added in code, not judged.
   const judged = clusters.filter((c) => c.section !== 'jewish');
@@ -86,7 +102,7 @@ export async function filterByRelevance(
   const ranked = [...judged].sort((a, b) => scoreOf(b) - scoreOf(a));
   const keepIds = new Set(
     ranked
-      .filter((c, i) => scoreOf(c) >= KEEP_AT_OR_ABOVE || i < KEEP_AT_LEAST)
+      .filter((c, i) => scoreOf(c) >= KEEP_AT_OR_ABOVE || i < floor)
       .map((c) => c.id),
   );
 

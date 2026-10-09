@@ -69,3 +69,22 @@ test('the holiday is never judged — it is added in code', async () => {
   const { kept } = await filterByRelevance(clusters, scoring(() => 0));
   assert.ok(kept.some((c) => c.id === 99));
 });
+
+test('a short list can be judged in full when the floor is zero', async () => {
+  // Her interests are a short keyword-matched list. With the default floor of
+  // ten they were never judged, which is how an Egyptian press protest got in
+  // as a "journalism interest".
+  const { kept, dropped } = await filterByRelevance(make(4), scoring((id) => (id === 2 ? 1 : 8)), 0);
+  assert.equal(dropped.length, 1);
+  assert.equal(dropped[0].cluster.id, 2);
+  assert.equal(kept.length, 3);
+});
+
+test('the judge is told what Peter has ruled out', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../lib/relevance.ts', import.meta.url), 'utf8');
+  // Today's misses, in the judge's own words — tuned instead of adding regexes.
+  assert.match(src, /press, protests or politics in another country/, 'Egypt');
+  assert.match(src, /lesser-known company's IPO, a company merely "backed by" a big one/, 'Firmus');
+  assert.match(src, /major US storm .* or any California \/ LA weather/, 'weather focus');
+});
