@@ -380,7 +380,10 @@ const NOT_HER_TEAMS = /\b(dodgers|lakers|rams|chargers|clippers|kings|angels|gal
 export const LOCAL_BOOST = 2.5;
 
 export function isLocalStory(title: string): boolean {
-  return LOCAL.test(title) && !NOT_HER_TEAMS.test(title);
+  // Baja California is in Mexico. "Boat capsizes off Baja California coast"
+  // was promoted as one of her California interests.
+  const withoutBaja = title.replace(/\bbaja california( sur)?\b/gi, '');
+  return LOCAL.test(withoutBaja) && !NOT_HER_TEAMS.test(withoutBaja);
 }
 
 function localBoost(title: string, section: Section): number {

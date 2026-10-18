@@ -934,3 +934,11 @@ test('casualties and fire stay blocked, storm or no storm', async () => {
     assert.ok(!isReportableNews(t, 'https://e.com/n/x'), `should stay blocked: ${t}`);
   }
 });
+
+test('Baja California is not California', async () => {
+  const { isLocalStory } = await import('../lib/select');
+  // A Mexican boat disaster was promoted as one of her California interests.
+  assert.ok(!isLocalStory('Hurricane threatens Baja California Sur'));
+  assert.ok(!isLocalStory('Search continues after boat capsizes off Baja California coast'));
+  assert.ok(isLocalStory('California passes a new AI law'), 'real California still counts');
+});

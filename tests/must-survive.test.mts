@@ -57,6 +57,7 @@ const MUST_SURVIVE = [
   'Ukraine says Russia attacked its power grid overnight',
   'Hackers attacked the city water system, officials say',
   'Knife-edge vote expected in the Senate',
+  'Sales are sinking at mall department stores',
 ];
 
 test('ordinary news survives the content filters', () => {
@@ -107,6 +108,9 @@ const MUST_BLOCK = [
   'Small medical plane carrying six loses contact on Bermuda to Boston flight',
   // Disease, however the adjective is formed: "rabid" walked past "rabies".
   'LA officials document first case of a rabid raccoon in over 50 years',
+  // Boats, in any word order.
+  'Search continues after boat capsizes off Baja California coast. 16 rescued, but others missing',
+  'Eleven missing after a fishing boat sank near the coast',
 ];
 
 test('word variants do not slip past the filters', () => {

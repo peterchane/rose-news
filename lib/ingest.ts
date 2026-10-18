@@ -337,6 +337,13 @@ const DISTRESSING = new RegExp(
     // from plane that went missing off US coast" named no crash and no death.
     /\b(debris|wreckage|remains)\b.{0,40}\b(plane|aircraft|jet|helicopter|boat|ship|vessel|flight)\b/,
     /\b(plane|aircraft|jet|helicopter|flight|vessel|boat)\b.{0,40}\b(missing|disappear\w*|los(es|t|ing) contact|went down|goes down|vanish\w*|search under ?way)\b/,
+    // Boats sink in any word order. "Search continues after boat capsizes off
+    // Baja California coast. 16 rescued, but others missing" matched nothing.
+    /\b(capsiz\w*|shipwreck\w*|overturned at sea)\b/,
+    // "Sinking" alone is also what sales and stocks do; only near a vessel.
+    /\b(boat|vessel|ship|ferry|raft|dinghy|yacht)\b.{0,40}\b(sank|sinks|sinking)\b|\b(sank|sinks|sinking)\b.{0,40}\b(boat|vessel|ship|ferry|raft|dinghy|yacht)\b/,
+    /\b(missing|rescued|search(es|ing)? for|survivors?)\b.{0,60}\b(boat|vessel|ship|ferry|raft|dinghy|yacht|migrants? at sea)\b/,
+    /\b(boat|vessel|ship|ferry|raft|dinghy|yacht)\b.{0,60}\b(rescued|survivors?|search continues)\b/,
 
     // A lawsuit being FILED decides nothing — it's a press release with a
     // docket number. A court RULING is news and is deliberately not matched
