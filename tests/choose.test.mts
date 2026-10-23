@@ -85,3 +85,18 @@ test('a routine USC note is not an interest; a big one is', async () => {
   assert.ok(titles.some((t) => /No\. 12/.test(t)));
   assert.ok(!titles.some((t) => /practice report/.test(t)));
 });
+
+test('USC means football; other sports only for a very big game', async () => {
+  const { uscSportAllowed } = await import('../lib/choose');
+  // Peter: "just football unless basketball has a very big game."
+  const t = (title: string) => c('usc', title, 5);
+  assert.ok(uscSportAllowed(t('Lincoln Riley fired after fourth straight loss')), 'football');
+  assert.ok(uscSportAllowed(t('USC beats Oregon in a ranked matchup')), 'unnamed sport is left to the usual rules');
+  assert.ok(!uscSportAllowed(t('USC men’s basketball ranked No. 21 in AP preseason poll')));
+  assert.ok(!uscSportAllowed(t('USC women’s basketball to face Cal in preseason exhibition')));
+  assert.ok(!uscSportAllowed(t('USC basketball beats Washington by 12')));
+  assert.ok(!uscSportAllowed(t('USC volleyball sweeps Arizona')));
+  assert.ok(uscSportAllowed(t('USC basketball reaches the Final Four')));
+  assert.ok(uscSportAllowed(t('USC women’s basketball wins national championship')));
+  assert.ok(uscSportAllowed(t('USC basketball opens NCAA Tournament against Duke')));
+});
