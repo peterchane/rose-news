@@ -22,7 +22,9 @@ export type Article = {
 const FETCH_TIMEOUT_MS = 12_000;
 
 /** How long a USC story stays eligible, whichever outlet ran it. */
-export const USC_MAX_AGE_HOURS = 96;
+// Was 96, to rescue one story that aged out. That let a four-day-old
+// preseason poll lead the brief on Oct 23 — not today's news.
+export const USC_MAX_AGE_HOURS = 36;
 const USC_STORY = /\b(USC|Trojans)\b/;
 
 const parser = new XMLParser({

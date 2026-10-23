@@ -942,3 +942,18 @@ test('Baja California is not California', async () => {
   assert.ok(!isLocalStory('Search continues after boat capsizes off Baja California coast'));
   assert.ok(isLocalStory('California passes a new AI law'), 'real California still counts');
 });
+
+test('a preseason poll is a prediction, not big USC news', async () => {
+  const { isBigUscStory, SYSTEM_PROMPT } = await import('../lib/write');
+  // Oct 23: USC basketball's four-day-old preseason ranking led the email,
+  // and the writer called it football because the headline named no sport.
+  assert.ok(!isBigUscStory('USC Trojans Land in Preseason AP Top 25 Poll As Anticipated Season Looms'));
+  assert.ok(!isBigUscStory('USC men’s basketball defeats UC San Diego in preseason exhibition'));
+  assert.ok(isBigUscStory('USC falls out of the top 25 after a loss to Oregon'), 'an in-season ranking still counts');
+  assert.match(SYSTEM_PROMPT, /do not assume football/);
+});
+
+test('USC stories expire after a day and a half', async () => {
+  const { USC_MAX_AGE_HOURS } = await import('../lib/ingest');
+  assert.ok(USC_MAX_AGE_HOURS <= 36, 'a four-day-old story is not today');
+});

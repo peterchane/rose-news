@@ -78,10 +78,10 @@ test('a routine USC note is not an interest; a big one is', async () => {
   const all = [
     ...HEADLINES.slice(0, 6).map((h, i) => c('us', h, 40 - i)),
     c('usc', 'USC practice report: three players day-to-day', 5),
-    c('usc', 'USC ranked No. 12 in the preseason poll', 5),
+    c('usc', 'USC climbs to No. 12 in the AP poll after upset win', 5),
   ];
   const { interests } = await chooseStories(all, approve);
   const titles = interests.map((x) => x.title);
-  assert.ok(titles.some((t) => /ranked/.test(t)));
+  assert.ok(titles.some((t) => /No\. 12/.test(t)));
   assert.ok(!titles.some((t) => /practice report/.test(t)));
 });

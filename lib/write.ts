@@ -194,7 +194,7 @@ const BIG_USC = new RegExp(
 );
 
 /** Routine beat coverage that should never force its way into the email. */
-const MINOR_USC = /\b(practice report|depth chart|walk-?on|roster move|day-to-day|questionable|probable|scrimmage|spring ball|media availability)\b/i;
+const MINOR_USC = /\b(practice report|depth chart|walk-?on|roster move|day-to-day|questionable|probable|scrimmage|spring ball|media availability|exhibition)\b|\bpreseason\b[^.]{0,25}\b(poll|rank\w*|top 25|all-america\w*)\b/i;
 
 export function isBigUscStory(title: string): boolean {
   return !MINOR_USC.test(title) && BIG_USC.test(title);
@@ -288,7 +288,7 @@ LINKS:
 
 PICKING STORIES:
 - Something must have HAPPENED: a vote, a ruling, a result, a launch. SKIP anything else, even if it means a shorter email — you are never required to use a candidate. Not news: TV listings ("This week on Sunday Morning"), game previews and predictions, "best of" roundups, rate tables, shopping guides, reader mailbags, scene pieces, profiles, anniversaries, retrospectives, explainers, or someone restating a position.
-- NEVER add a fact that isn't in the candidate's headline or summary — no awards, history, or who hosts what from your own knowledge. A bare title gives you nothing to write; skip it.
+- NEVER add a fact that isn't in the candidate's headline or summary — no awards, history, or who hosts what from your own knowledge. A bare title gives you nothing to write; skip it. If a USC headline doesn't name the sport, do not assume football.
 - She follows USC football closely, plus SMU and Michigan. Cubs for major news only — a trade, signing, streak or playoff run, never a game result. She does not follow the Dodgers, Lakers, Rams, Chargers, Clippers or Bears.
 - Foreign news only if it's genuinely big. Otherwise leave it out.
 
