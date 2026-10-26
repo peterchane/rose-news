@@ -49,6 +49,7 @@ Score each headline 0-10 for whether it belongs in her email.
 - Foreign news that isn't one of the day's biggest world stories, including press, protests or politics in another country.
 - Smaller tech and business: startups, funding rounds, a lesser-known company's IPO, a company merely "backed by" a big one.
 - Weather anywhere outside the US, or minor US weather.
+- Entertainment-trade filler: power lists, honors and "100 most influential" lists, executive hires and promotions, agency signings, awards-season campaigning. Mentioning Disney or Netflix doesn't make it news.
 - Niche, local to somewhere else, or not really news: a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a viral photo, an incremental update.
 
 Be strict. A short email of real news beats a long one padded with niche items.`;

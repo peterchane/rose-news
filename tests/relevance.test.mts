@@ -87,4 +87,5 @@ test('the judge is told what Peter has ruled out', async () => {
   assert.match(src, /press, protests or politics in another country/, 'Egypt');
   assert.match(src, /lesser-known company's IPO, a company merely "backed by" a big one/, 'Firmus');
   assert.match(src, /major US storm .* or any California \/ LA weather/, 'weather focus');
+  assert.match(src, /power lists, honors/, 'Latina Powerhouse 100 list');
 });
