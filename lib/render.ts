@@ -1,3 +1,4 @@
+import { footerLines } from './jokes';
 import { CITATION_RE, type Brief } from './write';
 import type { Cluster } from './select';
 
@@ -75,9 +76,8 @@ export function renderBrief(
 ): RenderedBrief {
   const byId = new Map(clusters.map((c) => [c.id, c]));
   const cited = new Set<number>();
-  // A fixed sign-off. Peter: "remove the bottom messages from Dad. instead add
-  // 'Rose news email with love from Dad'." It replaced a rotating note.
-  const signoff = 'Rose news email with love from Dad';
+  // A knock-knock joke most days; the message from Dad on Sundays.
+  const footer = footerLines();
 
   const bodyHtml = brief.paragraphs
     .map(
@@ -114,7 +114,7 @@ export function renderBrief(
                     : ''
                 }${bodyHtml}
 <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e5e5e2;font-size:14px;line-height:1.6;color:${TEXT_COLOR};">
-                  ${escapeHtml(signoff)}
+                  ${footer.map(escapeHtml).join('<br>')}
                 </p>
               </td>
             </tr>
@@ -139,7 +139,7 @@ export function renderBrief(
     })
     .join('\n');
 
-  const text = `${weather ? `${weather}\n\n` : ''}${holiday ? `${holiday}\n\n` : ''}${textBody}\n\n${signoff}\n\n---\nSOURCES\n${sources}\n`;
+  const text = `${weather ? `${weather}\n\n` : ''}${holiday ? `${holiday}\n\n` : ''}${textBody}\n\n${footer.join('\n')}\n\n---\nSOURCES\n${sources}\n`;
 
   return { subject: brief.subject, html, text, citedIds: [...cited].sort((a, b) => a - b) };
 }

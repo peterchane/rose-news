@@ -1,0 +1,46 @@
+# Knock-knock jokes for the bottom of Rose's email. One a day, in order, and
+# the list starts over when it runs out. On Sundays the email ends with the
+# message from Dad instead.
+#
+# One joke per line:   Who's there | Punchline
+# Lines starting with # are ignored. Add, delete or reorder freely.
+
+Lettuce | Lettuce in, it's cold out here!
+Boo | Don't cry, it's only a joke.
+Cow says | No, a cow says moooo!
+Interrupting cow | Mooo!
+Olive | Olive you and I miss you!
+Tank | You're welcome!
+Atch | Bless you!
+Nobel | No bell, that's why I knocked.
+Broken pencil | Never mind, it's pointless.
+Ice cream | Ice cream every time I see a scary movie!
+Hawaii | I'm fine, Hawaii you?
+Orange | Orange you glad I didn't say banana?
+Banana | Banana split, so ice creamed.
+Wooden shoe | Wooden shoe like to hear another joke?
+Spell | W-H-O.
+Dishes | Dishes the police, open up!
+Lena | Lena little closer and I'll tell you another joke.
+Annie | Annie thing you can do, I can do better.
+Says | Says me, that's who!
+Justin | Justin time for dinner.
+Kanga | No, kangaroo!
+Owls say | Yes, they do.
+Candice | Candice door open, or what?
+Figs | Figs the doorbell, it's broken!
+Alpaca | Alpaca the suitcase, you load the car.
+Water | Water you doing? Let me in!
+Harry | Harry up, it's cold out here!
+Luke | Luke through the peephole and find out.
+Yah | Wow, I didn't know you were a cowgirl!
+Cash | No thanks, but I'll take a peanut.
+Honeydew | Honeydew you want to hear another one?
+Iva | Iva sore hand from all this knocking.
+Weekend | Weekend do anything we want.
+Amish | Really? You don't look like a shoe.
+Tennis | Tennis five plus five.
+Abby | Abby birthday to you!
+Philip | Philip my cup, I'm thirsty.
+Doris | Doris locked, that's why I'm knocking.
+Mikey | Mikey doesn't fit in the keyhole.
