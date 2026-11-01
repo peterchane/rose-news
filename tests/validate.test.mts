@@ -957,3 +957,48 @@ test('USC stories expire after a day and a half', async () => {
   const { USC_MAX_AGE_HOURS } = await import('../lib/ingest');
   assert.ok(USC_MAX_AGE_HOURS <= 36, 'a four-day-old story is not today');
 });
+
+test('a pregame item never counts as covering the result', async () => {
+  const { dropAlreadyCovered } = await import('../lib/repeat');
+  // Nov 1: a photo gallery of USC vs Ohio State counted as covering the game,
+  // and the upset itself was dropped as a repeat — that day and the next.
+  const clusters = [
+    { ...cluster(1, 'usc'), title: 'Embattled Riley relishes win as USC saves CFP hopes with upset of Ohio State', score: 23 },
+    { ...cluster(2, 'usc'), title: 'USC Trojans facing Ohio State this weekend in Big Ten play', score: 5 },
+  ];
+  const { kept } = dropAlreadyCovered(clusters, {
+    subject: 'x',
+    topics: ['OSU Buckeyes face USC Trojans in Big Ten football. See the photos'],
+  });
+  assert.ok(kept.some((c) => /upset of Ohio State/.test(c.title)), 'the result gets through');
+
+  // Once a result has actually been sent, a rehash of it is a repeat again.
+  const after = dropAlreadyCovered(clusters, {
+    subject: 'x',
+    topics: ['USC stuns Ohio State with a fourth-quarter upset'],
+  });
+  assert.ok(!after.kept.some((c) => /upset of Ohio State/.test(c.title)), 'no double-reporting');
+});
+
+test('fancy-letter spam is normalised before filtering', async () => {
+  const { parseFeedItems } = await import('../lib/ingest');
+  const feed = { section: 'usc' as const, source: 'Google', url: 'https://x/f', weight: 1, maxAgeHours: 48 };
+  const xml = `<rss><channel><item><title>!$>[LIVE!#NOW]* USC Trojans V Ohio State Buckeyes 𝕃𝕚𝕧𝕖 Ｆｒｅｅ Ｓｔｒｅａｍｓ</title>
+    <link>https://x/1</link><pubDate>${new Date().toUTCString()}</pubDate></item></channel></rss>`;
+  assert.equal(parseFeedItems(xml, feed).length, 0, 'stream spam is dropped');
+});
+
+test('a preview using result words is not a result', async () => {
+  const { isUscFootballResult } = await import('../lib/teams');
+  const { dropAlreadyCovered } = await import('../lib/repeat');
+  assert.ok(!isUscFootballResult({ title: 'Is an upset brewing in Los Angeles? Breaking down the keys to Ohio State-USC', blurb: '' }));
+  assert.ok(isUscFootballResult({ title: 'USC defeats Ohio State, 30-18, in Los Angeles', blurb: '' }));
+
+  // Last week's result against someone else never blocks this week's.
+  const win = { ...cluster(1, 'usc'), title: 'Embattled Riley relishes win as USC saves CFP hopes with upset of Ohio State', score: 23 };
+  const { kept } = dropAlreadyCovered([win], {
+    subject: 'x',
+    topics: ['USC beats Michigan State in a rout', 'Is an upset brewing in Los Angeles? Breaking down the keys to Ohio State-USC'],
+  });
+  assert.equal(kept.length, 1);
+});

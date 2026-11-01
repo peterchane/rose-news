@@ -5,7 +5,10 @@ import { filterByRelevance, type ScoreFn } from './relevance';
 import {
   TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT,
   POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT,
+  isUscOtherSport, uscSportAllowed, isUscFootballResult,
 } from './teams';
+
+export { isUscOtherSport, uscSportAllowed, isUscFootballResult };
 
 /**
  * A sports story she'd want, by the rules in teams.txt: every game for a "+"
@@ -59,28 +62,6 @@ export function isMediaOrCulture(title: string): boolean {
   return MEDIA_AND_CULTURE.test(title);
 }
 
-/**
- * USC means football. Peter: "just football unless basketball has a very big
- * game." Any other USC sport named in the headline gets in only for a game that
- * genuinely matters — the NCAA tournament, a title game — never a ranking, an
- * exhibition or a routine win.
- */
-const USC = /\b(usc|trojans?)\b/i;
-const OTHER_SPORT =
-  /\b(basketball|hoops|baseball|softball|volleyball|soccer|water polo|tennis|golf|track|swim\w*|lacrosse|hockey|beach volleyball|march madness)\b/i;
-const VERY_BIG_GAME =
-  /\b(ncaa tournament|march madness|final four|elite eight|sweet 16|sweet sixteen|national (title|championship)|championship game|title game|conference (title|championship) game|big ten tournament final|vs\.? no\. 1|against no\. 1)\b/i;
-
-export function isUscOtherSport(c: Cluster): boolean {
-  const hay = `${c.title} ${c.blurb}`;
-  return USC.test(hay) && OTHER_SPORT.test(hay);
-}
-
-export function uscSportAllowed(c: Cluster): boolean {
-  if (!isUscOtherSport(c)) return true;
-  return VERY_BIG_GAME.test(`${c.title} ${c.blurb}`);
-}
-
 /** A team she doesn't follow, only here for October. One story is plenty. */
 const POSTSEASON_ONLY_CAP = 1;
 
@@ -132,8 +113,15 @@ export async function chooseStories(all: Cluster[], score?: ScoreFn): Promise<Ch
   // Her interests are matched by keyword, so they get judged too: "Egyptian
   // journalists plan weekend protest" matched "journalist" and went in unvetted.
   const judged = (await filterByRelevance(possible, score, 0)).kept;
-  const interests = judged
-    .sort((a, b) => b.score - a.score)
+
+  // A USC football result is never left out, and never judged away.
+  const result = all
+    .filter((c) => !taken.has(c.id) && isUscFootballResult(c))
+    .sort((a, b) => b.score - a.score)[0];
+  const withResult = result ? [result, ...judged.filter((c) => c.id !== result.id)] : judged;
+
+  const interests = withResult
+    .sort((a, b) => (a === result ? -1 : b === result ? 1 : b.score - a.score))
     .filter((c) => {
       // Three Dodgers stories crowded out everything else she follows.
       const isPostseasonOnly = Boolean(POSTSEASON_ONLY_PATTERN?.test(`${c.title} ${c.blurb}`));

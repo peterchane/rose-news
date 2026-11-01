@@ -100,3 +100,36 @@ test('USC means football; other sports only for a very big game', async () => {
   assert.ok(uscSportAllowed(t('USC women’s basketball wins national championship')));
   assert.ok(uscSportAllowed(t('USC basketball opens NCAA Tournament against Duke')));
 });
+
+test('a USC football result always leads her interests', async () => {
+  const { isUscFootballResult } = await import('../lib/choose');
+  // USC upset Ohio State and the email ran a photo gallery that never said who
+  // won, while the result story sat unused.
+  assert.ok(isUscFootballResult(c('sports', 'Embattled Riley relishes win as USC saves CFP hopes with upset of Ohio State', 1)));
+  assert.ok(isUscFootballResult(c('usc', 'USC falls to Oregon in overtime', 1)));
+  assert.ok(!isUscFootballResult(c('usc', 'OSU Buckeyes face USC Trojans in Big Ten football. See the photos', 1)));
+  assert.ok(!isUscFootballResult(c('usc', 'USC basketball beats Washington', 1)), 'football only');
+
+  const all = [
+    ...HEADLINES.slice(0, 6).map((h, i) => c('us', h, 40 - i)),
+    c('usc', 'How USC quarterback can boost his draft stock vs. Ohio State', 50),
+    c('sports', 'USC stuns Ohio State with fourth-quarter upset', 0.1),
+  ];
+  const veto = async (lines: string) =>
+    [...lines.matchAll(/#(\d+)/g)].map((m) => ({ id: Number(m[1]), score: 0 }));
+  const { interests } = await chooseStories(all, veto);
+  assert.match(interests[0].title, /stuns Ohio State/, 'first, even with a low score and a judge that hates everything');
+});
+
+test('photo galleries, captions and stream spam are not news', async () => {
+  const { isReportableNews } = await import('../lib/ingest');
+  for (const t of [
+    'OSU Buckeyes face USC Trojans in Big Ten football. See the photos',
+    'USC Trojans defensive tackles Floyd Boucard (88) and Jide Abasiri (97) celebrate',
+    'LIVESTREAMs! USC Trojans vs Ohio State Buckeyes Live free online',
+    'Ohio State Buckeyes vs. USC Trojans Live Score and Stats - October 31, 2026 Game',
+  ]) {
+    assert.ok(!isReportableNews(t, 'https://e.com/n/x'), `should drop: ${t}`);
+  }
+  assert.ok(isReportableNews('Embattled Riley relishes win as USC saves CFP hopes', 'https://e.com/n/x'));
+});

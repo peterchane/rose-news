@@ -87,3 +87,51 @@ export const TEAMS = [...RULES.always, ...RULES.notableOnly, ...RULES.postseason
 export const TEAM_PATTERN = buildTeamPattern(RULES.always);
 export const NOTABLE_ONLY_PATTERN = buildTeamPattern(RULES.notableOnly);
 export const POSTSEASON_ONLY_PATTERN = buildTeamPattern(RULES.postseasonOnly);
+
+/**
+ * USC means football. Peter: "just football unless basketball has a very big
+ * game." Any other USC sport named in the headline gets in only for a game that
+ * genuinely matters — the NCAA tournament, a title game — never a ranking, an
+ * exhibition or a routine win.
+ */
+const USC = /\b(usc|trojans?)\b/i;
+const OTHER_SPORT =
+  /\b(basketball|hoops|baseball|softball|volleyball|soccer|water polo|tennis|golf|track|swim\w*|lacrosse|hockey|beach volleyball|march madness)\b/i;
+const VERY_BIG_GAME =
+  /\b(ncaa tournament|march madness|final four|elite eight|sweet 16|sweet sixteen|national (title|championship)|championship game|title game|conference (title|championship) game|big ten tournament final|vs\.? no\. 1|against no\. 1)\b/i;
+
+export function isUscOtherSport(c: { title: string; blurb: string }): boolean {
+  const hay = `${c.title} ${c.blurb}`;
+  return USC.test(hay) && OTHER_SPORT.test(hay);
+}
+
+export function uscSportAllowed(c: { title: string; blurb: string }): boolean {
+  if (!isUscOtherSport(c)) return true;
+  return VERY_BIG_GAME.test(`${c.title} ${c.blurb}`);
+}
+
+/**
+ * The result of a USC football game. When one exists it always leads her
+ * interests: USC upset Ohio State and the email ran a photo gallery that never
+ * said who won, while the win itself sat unused.
+ */
+const RESULT = /\b(beat|beats|upset\w*|defeat\w*|stun\w*|rout\w*|tops?|edges?|falls? to|loses? to|lost to|win over|wins? (at|over|against)|loss to|knocks? off|holds? off|rall(y|ies) past)\b/i;
+
+/**
+ * Speculation that uses result words: "Is an upset brewing? Breaking down the
+ * keys to Ohio State-USC" is a preview, and treating it as the result is what
+ * kept the actual upset out of two emails.
+ */
+const SPECULATIVE = /\?|\b(brewing|keys to|breaking down|preview|predict\w*|odds|how to watch|what to watch|could|can|will|would|might|need to|must|bigger roles?|draft stock|matchup)\b/i;
+
+export function isUscFootballResult(c: { title: string; blurb: string }): boolean {
+  return USC.test(c.title) && RESULT.test(c.title) && !SPECULATIVE.test(c.title) && !isUscOtherSport(c);
+}
+
+/** The opponent named in a result headline, for telling one game from the next. */
+export function opponentWords(title: string): Set<string> {
+  const skip = /^(usc|trojans?|the|and|with|after|over|for|its|his|in|of|to|at|win|wins|upset|beats?|defeats?|stuns?|falls?|loses?|lost|saves?|hopes?|cfp|riley|embattled|relishes|state|university|college|north|south|east|west|central|angeles|rout|overtime|game|football|team|points|images|photos|coliseum)$/i;
+  return new Set(
+    title.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter((w) => w.length > 3 && !skip.test(w)),
+  );
+}

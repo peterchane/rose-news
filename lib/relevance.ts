@@ -39,7 +39,7 @@ Score each headline 0-10 for whether it belongs in her email.
 
 8-10:
 - Genuinely top national news, or world news every major US outlet is leading with.
-- USC and its football; the Cubs, SMU or Michigan football when something notable happened.
+- USC and its football — above all, the result of a USC game; the Cubs, SMU or Michigan football when something notable happened.
 - Los Angeles and California.
 - Weather: a major US storm (hurricane, blizzard, major outbreak) or any California / LA weather.
 - The media business she wants to work near: US newsrooms, journalism, PR, streaming, Hollywood, pop culture moments everyone is talking about — including women leading in media, entertainment and business.
@@ -49,6 +49,7 @@ Score each headline 0-10 for whether it belongs in her email.
 - Foreign news that isn't one of the day's biggest world stories, including press, protests or politics in another country.
 - Smaller tech and business: startups, funding rounds, a lesser-known company's IPO, a company merely "backed by" a big one.
 - Weather anywhere outside the US, or minor US weather.
+- Sports filler: previews and pregame pieces for a game already played, photo galleries, live-stream listings, draft-stock speculation.
 - Entertainment-trade filler: honors lists and "power 100"-style rankings from niche or community-specific publications, agency signings, mid-level personnel moves, awards-season campaigning. Mentioning Disney or Netflix doesn't make it news.
 - Niche, local to somewhere else, or not really news: a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a viral photo, an incremental update.
 

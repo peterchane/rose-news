@@ -1,3 +1,4 @@
+import { isUscFootballResult, opponentWords } from './teams';
 import type { Cluster } from './select';
 import type { PreviousBrief } from './write';
 
@@ -75,7 +76,25 @@ export function dropAlreadyCovered(
   const kept: Cluster[] = [];
   const dropped: Cluster[] = [];
 
+  // Earlier coverage only "covers" a game if it reported the result. On Nov 1
+  // a pregame photo gallery ("OSU Buckeyes face USC Trojans... See the
+  // photos") counted as covering USC's upset of Ohio State, and the win itself
+  // was dropped as a repeat — that day and the next.
+  const sentResults = previous.topics
+    .filter((t) => isUscFootballResult({ title: t, blurb: '' }))
+    .map(opponentWords);
+
   for (const c of clusters) {
+    // A result is only a repeat if that same game's result was already sent —
+    // last week's win over someone else doesn't count, and neither does a
+    // preview of this one.
+    if (isUscFootballResult(c)) {
+      const words = opponentWords(c.title);
+      const sameGame = sentResults.some((prev) => [...words].some((w) => prev.has(w)));
+      (sameGame ? dropped : kept).push(c);
+      continue;
+    }
+
     // Still the day's news, so it stays — however familiar it looks.
     if (running.has(c.id)) {
       kept.push(c);
