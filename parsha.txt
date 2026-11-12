@@ -1,0 +1,73 @@
+# This week's Torah portion, shown at the bottom of the email Monday to Saturday.
+# (Sunday still gets the message from Dad.)
+#
+# Which portion it is comes from Hebcal's calendar automatically. This file
+# only holds the summary for each one. Edit any line freely.
+#
+# One per line:   Name | Summary
+# Names match Hebcal's spelling. Double portions (like Vayakhel-Pekudei) are
+# put together from the two lines automatically.
+
+# Genesis
+Bereshit | God creates the world in six days and rests on the seventh. Adam and Eve are sent out of the Garden of Eden, and Cain kills his brother Abel.
+Noach | God sends a great flood, and Noah, his family and the animals survive in the ark. Later, people build the Tower of Babel and are scattered across the earth.
+Lech-Lecha | God tells Abraham to leave his home for a new land and promises him many descendants. Abraham and God make a covenant, and his son Ishmael is born.
+Vayera | Abraham welcomes three visitors who promise that Sarah will have a son, and Isaac is born. God tests Abraham by asking him to offer Isaac, then stops him.
+Chayei Sara | Sarah dies and Abraham buys a burial cave for her in Hebron. Abraham's servant finds Rebecca at a well and brings her home to marry Isaac.
+Toldot | Rebecca gives birth to twins, Esau and Jacob, who struggle from the start. Jacob buys Esau's birthright and, with Rebecca's help, receives Isaac's blessing.
+Vayetzei | Jacob dreams of a ladder reaching to heaven, then goes to work for his uncle Laban. He marries Leah and Rachel and starts a large family.
+Vayishlach | Jacob wrestles with a stranger through the night and is renamed Israel. He reconciles with Esau, and Rachel dies giving birth to Benjamin.
+Vayeshev | Joseph's brothers, jealous of his coat and his dreams, sell him into slavery. In Egypt he is thrown into prison, where he interprets other prisoners' dreams.
+Miketz | Joseph interprets Pharaoh's dreams of seven good years and seven of famine and is put in charge of Egypt. His brothers come to buy food without recognizing him.
+Vayigash | Judah pleads for his brother Benjamin, and Joseph finally reveals who he is. Jacob and the whole family move to Egypt.
+Vayechi | Jacob blesses his sons and grandsons before he dies and is buried in Canaan. Joseph forgives his brothers, and the book of Genesis ends.
+
+# Exodus
+Shemot | A new Pharaoh enslaves the Israelites, and baby Moses is saved in a basket on the Nile. God speaks to Moses from a burning bush and sends him to free the people.
+Vaera | Moses and Aaron ask Pharaoh to let the people go, and he refuses. God sends the first seven plagues on Egypt.
+Bo | The last three plagues strike Egypt, ending with the death of the firstborn. The Israelites hold the first Passover and leave Egypt.
+Beshalach | The Red Sea splits so the Israelites can cross, and they sing in celebration. In the desert, God feeds them with manna.
+Yitro | Moses's father-in-law Jethro advises him to share the work of leading. At Mount Sinai, God gives the Ten Commandments.
+Mishpatim | Moses teaches laws for daily life, from fair treatment of workers to protecting strangers. The people answer, "We will do and we will listen."
+Terumah | God asks the people to bring gifts to build the Mishkan, a portable sanctuary. The portion describes the Ark, the table and the menorah.
+Tetzaveh | The priests' special clothing is described, including the high priest's breastplate. Aaron and his sons are prepared to serve in the sanctuary.
+Ki Tisa | While Moses is on the mountain, the people build a golden calf. Moses breaks the tablets, then returns with a second set.
+Vayakhel | Moses gathers the people, who bring so many gifts for the sanctuary that he has to tell them to stop. Skilled artisans begin building it.
+Pekudei | Moses accounts for all the materials used to build the sanctuary. It is completed, and God's presence fills it as a cloud.
+
+# Leviticus
+Vayikra | The book of Leviticus opens with the different kinds of offerings brought at the sanctuary. Some are given as thanks, others to make up for mistakes.
+Tzav | Aaron and his sons receive instructions for the offerings. Over seven days they are installed as priests.
+Shmini | On the day the sanctuary opens, Aaron's sons Nadav and Avihu bring an unauthorized fire and die. The portion also lists which animals are kosher.
+Tazria | The portion covers ritual purity after childbirth. It also describes a skin condition called tzara'at and how the priest examines it.
+Metzora | The portion describes how a person healed of tzara'at becomes pure again. Similar rules apply to tzara'at found on clothing and houses.
+Achrei Mot | The portion describes the Yom Kippur service, when the high priest enters the Holy of Holies. It also sets out rules for living a holy life.
+Kedoshim | "Be holy" opens a list of laws that includes "love your neighbor as yourself." Others include leaving food for the poor and treating strangers fairly.
+Emor | The portion gives rules for the priests and lists the yearly holidays. These include Shabbat, Passover, Shavuot, Rosh Hashanah, Yom Kippur and Sukkot.
+Behar | Every seventh year the land rests, and every fiftieth year is a Jubilee, when land returns to its original owners. The goal is that no one stays poor forever.
+Bechukotai | The book of Leviticus ends with blessings for following God's laws and warnings for ignoring them. Even so, God promises never to abandon the people.
+
+# Numbers
+Bamidbar | The book of Numbers opens with a census of the Israelites in the desert. Each tribe gets its own place around the sanctuary.
+Nasso | The census continues and the Levites receive their jobs. The portion includes the priestly blessing: "May God bless you and protect you."
+Beha’alotcha | Aaron lights the menorah, and the people set out from Sinai. They complain about the food, and Miriam is punished for speaking against Moses.
+Sh’lach | Twelve scouts explore the land of Canaan, and ten return afraid. Because the people lose faith, they must wander the desert for forty years.
+Korach | Korach leads a rebellion against Moses and Aaron and is swallowed by the earth. Aaron's staff blossoms to show he was chosen.
+Chukat | Miriam and Aaron both die. Moses strikes a rock for water instead of speaking to it, and is told he will not enter the land.
+Balak | The king of Moab hires the prophet Balaam to curse Israel. Each time he tries, a blessing comes out instead, and his donkey speaks to him.
+Pinchas | Pinchas is rewarded for his zeal, and a new census is taken. Five sisters win the right to inherit their father's land, and Joshua is named Moses's successor.
+Matot | Moses teaches the laws of vows. The tribes of Reuben and Gad ask to settle east of the Jordan River.
+Masei | The portion lists every stop on the forty-year journey. It sets the borders of the land and establishes cities of refuge.
+
+# Deuteronomy
+Devarim | The book of Deuteronomy opens as Moses speaks to the people before his death. He retells their journey through the desert.
+Vaetchanan | Moses repeats the Ten Commandments. He teaches the Shema: "Hear, O Israel, the Lord is our God, the Lord is One."
+Eikev | Moses reminds the people that the land will be good, and warns them not to forget God when life is comfortable. The portion includes the blessing after meals.
+Re’eh | Moses sets a choice before the people, between a blessing and a curse. He teaches about giving to those in need and about the pilgrimage festivals.
+Shoftim | Moses tells the people to appoint judges and pursue justice: "Justice, justice you shall pursue." The portion also covers kings, prophets and the rules of war.
+Ki Teitzei | This portion has more laws than any other, covering family life, fairness and kindness. Examples include returning lost property and paying workers on time.
+Ki Tavo | When the people enter the land, they will bring their first fruits and give thanks. Moses describes blessings and warnings they will hear.
+Nitzavim | Moses tells everyone standing there, and future generations too, that they are part of the covenant. He urges them to choose life.
+Vayeilech | Moses, now 120 years old, passes leadership to Joshua. He writes down the Torah and tells the people to read it together every seven years.
+Ha’azinu | Moses speaks his last words as a long poem about God and the people. God tells him to climb a mountain to see the land.
+Vezot Haberakhah | Moses blesses each tribe and dies on Mount Nebo, seeing the land he will not enter. The Torah ends, and the reading starts again from the beginning.

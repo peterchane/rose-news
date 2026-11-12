@@ -1,4 +1,4 @@
-import { footerLines } from './jokes';
+import { footerLines } from './parsha';
 import { CITATION_RE, type Brief } from './write';
 import type { Cluster } from './select';
 
@@ -73,11 +73,11 @@ export function renderBrief(
   clusters: Cluster[],
   weather: string | null = null,
   holiday: string | null = null,
+  // This week's Torah portion most days; the message from Dad on Sundays.
+  footer: string[] = footerLines(),
 ): RenderedBrief {
   const byId = new Map(clusters.map((c) => [c.id, c]));
   const cited = new Set<number>();
-  // A knock-knock joke most days; the message from Dad on Sundays.
-  const footer = footerLines();
 
   const bodyHtml = brief.paragraphs
     .map(

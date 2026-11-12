@@ -8,6 +8,7 @@ import { loadPreviousBrief, loadRecentTopics } from './archive';
 import { dropAlreadyCovered } from './repeat';
 import { TEAM_PATTERN, NOTABLE_ONLY_PATTERN, NOTABLE_EVENT, POSTSEASON_ONLY_PATTERN, POSTSEASON_EVENT } from './teams';
 import { todaysHolidayNote } from './jewish';
+import { weeksParsha, footerLines } from './parsha';
 import { chooseStories } from './choose';
 import { todayPT } from './schedule';
 import { fetchCredits, lowBalanceWarning } from './credits';
@@ -76,9 +77,13 @@ export async function buildBrief(): Promise<PipelineResult> {
 
   const brief = await writeBrief(relevant, previous);
   // Never blocks the brief: an unavailable forecast just means no weather line.
-  const [weather, holiday] = await Promise.all([todaysWeatherNote(), todaysHolidayNote(todayPT())]);
+  const [weather, holiday, parsha] = await Promise.all([
+    todaysWeatherNote(),
+    todaysHolidayNote(todayPT()),
+    weeksParsha(todayPT()),
+  ]);
   if (holiday) console.log(`[jewish] ${holiday}`);
-  const rendered = renderBrief(brief, relevant, weather, holiday);
+  const rendered = renderBrief(brief, relevant, weather, holiday, footerLines(todayPT(), parsha));
 
   return { brief, rendered, clusters: relevant, failures, degraded: brief.degraded };
 }
