@@ -35,8 +35,8 @@ test('a well-formed brief passes', () => {
 });
 
 const cases: [string, () => any, RegExp][] = [
-  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /3-9 paragraphs/],
-  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /3-9 paragraphs/],
+  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /3-6 paragraphs/],
+  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /3-6 paragraphs/],
   ['a bulleted list', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), '- Iran did a thing worth noting here today\n- Israel did another separate thing'] }), /bulleted or numbered list/],
   ['a raw URL', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(https://evil.com)')] }), /raw URL/],
   ['an unknown id', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(#999)')] }), /#999/],

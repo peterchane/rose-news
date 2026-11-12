@@ -32,7 +32,7 @@ test('top news is the highest-ranked news, and only a handful of it', async () =
   const { top } = await chooseStories(all, approve);
   assert.equal(top.length, TOP_NEWS);
   assert.ok(top.every((t) => t.tier === 'top'));
-  assert.deepEqual(top.map((t) => t.score), [50, 49, 48, 47, 46]);
+  assert.deepEqual(top.map((t) => t.score), [50, 49, 48, 47, 46].slice(0, TOP_NEWS));
 });
 
 test('a low-ranked niche story never gets in just because a section had room', async () => {

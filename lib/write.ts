@@ -45,7 +45,7 @@ export const briefSchema = z.object({
   paragraphs: z
     .array(z.string())
     .describe(
-      'The body: 3 to 9 paragraphs of flowing prose, each containing inline [phrase](#id) citations. Write only as many as there is real news for.',
+      'The body: 3 to 6 short paragraphs of flowing prose, each containing inline [phrase](#id) citations. Write only as many as there is real news for.',
     ),
 });
 
@@ -70,7 +70,7 @@ export type Brief = RawBrief & {
  */
 export const PIVOT_WORDS = /(?:^|(?<=[.!?]\s))(Meanwhile|Separately|Elsewhere|In other news)[,]?\s+/g;
 
-export const MAX_PARAGRAPHS = 9;
+export const MAX_PARAGRAPHS = 6;
 /**
  * Below this the brief looks thin, but a thin day IS thin. Peter: "dont pad a
  * thin day." So this is a nudge, not a requirement — only a count below three
@@ -265,10 +265,10 @@ ORDER:
 Never announce the structure ("now to the news"). Just move between paragraphs.
 
 FORM:
-- 3-9 paragraphs, 40-80 words each. No headers or labels.
-- Write only as many paragraphs as there is real news for. A short brief is better than a padded one. NEVER include a story to fill space — if today has four stories worth her time, write four.
-- One topic per paragraph. If you write "Meanwhile" or "Separately" mid-paragraph, break there instead.
-- Sentences 12-20 words. One idea each.
+- 3-6 paragraphs, one story each, TWO sentences each (25-45 words). No headers.
+- Both sentences carry facts. Never filler like "is the story to watch."
+- Write only as many paragraphs as there is real news for. A short brief is better than a padded one. NEVER include a story to fill space.
+- Never "Meanwhile" or "Separately" mid-paragraph; break there instead.
 - Never a bulleted or numbered list.
 
 VOICE:
@@ -556,7 +556,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
     // Ten paragraphs is a slightly long email; zero is no email at all. Only
     // the second is worth losing the day over.
     const wildlyWrong = n < 3 || n > 12;
-    (wildlyWrong ? fatal : nit)(`Need 3-9 paragraphs, got ${n}.`);
+    (wildlyWrong ? fatal : nit)(`Need 3-6 paragraphs, got ${n}.`);
   }
 
   brief.paragraphs.forEach((para, i) => {
@@ -577,8 +577,8 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
           'Every paragraph must stand on its own and start a new sentence.',
       );
     }
-    if (words < 25) nit(`Paragraph ${n} is too short (${words} words); aim for 40-80.`);
-    if (words > 110) nit(`Paragraph ${n} is too long (${words} words); aim for 40-80. Split it at the topic change.`);
+    if (words < 15) nit(`Paragraph ${n} is too short (${words} words); aim for 25-45.`);
+    if (words > 60) nit(`Paragraph ${n} is too long (${words} words); aim for 25-45 — two sentences.`);
 
     // A pivot word means two topics got fused into one block. It's legitimate
     // only as the paragraph's opening word, where it bridges from the previous
@@ -631,7 +631,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   if (allCited.size < 3) {
     // Below three there is no email worth sending.
     fatal(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
-  } else if (allCited.size < 5) {
+  } else if (allCited.size < 4) {
     // Thin, so try again — but send it rather than send nothing.
     retry(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
   }
@@ -929,7 +929,7 @@ export async function writeBrief(
       );
       lastProblems = [
         'Your last response could not be parsed. Return valid JSON matching the schema: ' +
-          'a "paragraphs" array of 3 to 9 plain strings. ' +
+          'a "paragraphs" array of 3 to 6 plain strings. ' +
           'No markdown fences, no nested objects, no extra keys.',
       ];
     }
