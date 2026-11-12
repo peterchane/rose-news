@@ -111,6 +111,9 @@ const MUST_BLOCK = [
   // Boats, in any word order.
   'Search continues after boat capsizes off Baja California coast. 16 rescued, but others missing',
   'Eleven missing after a fishing boat sank near the coast',
+  // A verdict is a court story, even when it's about journalists.
+  'Two men found guilty of helping Iran try to ‘eliminate’ UK-based journalists',
+  'Former mayor not guilty on all counts',
 ];
 
 test('word variants do not slip past the filters', () => {
@@ -130,6 +133,7 @@ const INNOCENT_LOOKALIKES = [
   'A deadline looms for the funding bill',
   'The company established a new research arm',
   'Riotous applause greeted the announcement',
+  'Reality TV is her guilty pleasure, and she is not alone',
 ];
 
 test('innocent words containing a blocked stem are not filtered', () => {

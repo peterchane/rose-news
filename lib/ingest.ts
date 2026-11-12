@@ -146,6 +146,10 @@ const VIOLENT_CRIME = new RegExp(
     // charges being filed, reduced or upheld is still a story about a crime,
     // which is the whole category Rose asked to be kept out.
     /\b(charges?|indict\w*|prosecutor\w*|prosecut(e|ed|ion)|convict(ed|ion)|sentenc(ed|ing)|plead(s|ed)? guilty|arraign\w*|felony|manslaughter)\b/,
+    // A verdict, however it's phrased. "Two men found guilty of helping Iran
+    // try to 'eliminate' UK-based journalists" got in as a journalism story.
+    // Not bare "guilty": "a guilty pleasure" is not a court case.
+    /\b(found|ruled|declared|judged|was|were|is|are|been|not) guilty\b|\bguilty (verdicts?|pleas?|of)\b/,
     // The courtroom itself. A juror inquiry in a murder trial is crime
     // coverage however procedurally the headline words it.
     /\b(jurors?|jury|verdicts?|mistrial|defendants?|on trial|murder trial|testifies|testimony|acquitt\w*|plea deal)\b/,
