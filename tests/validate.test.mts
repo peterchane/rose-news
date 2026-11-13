@@ -35,12 +35,13 @@ test('a well-formed brief passes', () => {
 });
 
 const cases: [string, () => any, RegExp][] = [
-  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /3-6 paragraphs/],
-  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /3-6 paragraphs/],
+  ['too few paragraphs', () => ({ ...ok(), paragraphs: [para(1, 2), para(3, 4)] }), /3-5 paragraphs/],
+  ['too many paragraphs', () => ({ ...ok(), paragraphs: Array.from({ length: 13 }, () => para(1, 2)) }), /3-5 paragraphs/],
   ['a bulleted list', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), '- Iran did a thing worth noting here today\n- Israel did another separate thing'] }), /bulleted or numbered list/],
   ['a raw URL', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(https://evil.com)')] }), /raw URL/],
   ['an unknown id', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('(#1)', '(#999)')] }), /#999/],
   ['a "read more" anchor', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('[reported in talks]', '[read more]')] }), /meaningful phrase/],
+  ['a bare-number anchor', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace('[reported in talks]', '[1]')] }), /meaningful phrase/],
   ['a paragraph with no citations', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), para(1, 2).replace(/\[([^\]]+)\]\(#\d+\)/g, '$1')] }), /no citations/],
   ['a mid-paragraph topic pivot', () => ({ ...ok(), paragraphs: [...ok().paragraphs.slice(1), 'The vote passed the chamber on Tuesday evening after debate. Meanwhile a drone was found at a German airport, and police opened an investigation into how [it got there](#3).'] }), /pivots to a new topic/],
 ];
@@ -158,14 +159,14 @@ test('the lead may be foreign; the rest still runs US before foreign', () => {
   // Foreign lead, then US, then foreign, sports, good — allowed.
   const okLead = {
     ...ok(),
-    paragraphs: [para(1, 1), para(2, 3), para(5, 6), para(4, 4), para(9, 9), para(10, 7)],
+    paragraphs: [para(1, 1), para(2, 3), para(5, 6), para(4, 4), para(9, 10)],
   };
   assert.deepEqual(validateBrief(okLead, cs), []);
 
   // Foreign in the body followed by US — still rejected.
   const bad = {
     ...ok(),
-    paragraphs: [para(2, 2), para(4, 4), para(5, 6), para(7, 8), para(9, 9), para(10, 3)],
+    paragraphs: [para(2, 2), para(4, 4), para(5, 6), para(9, 9), para(10, 3)],
   };
   assert.ok(validateBrief(bad, cs).some((p) => /before any foreign story/.test(p)));
 });

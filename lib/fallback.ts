@@ -13,7 +13,7 @@ import { SECTION_ORDER } from './feeds';
  * that it cannot fail the way prose can. It is not a good email. It is an email,
  * on a morning that would otherwise have been silent.
  */
-export const FALLBACK_STORIES = 6;
+export const FALLBACK_STORIES = 5;
 
 /** A plain sentence per story, built from the candidate list alone. */
 export function fallbackParagraphs(clusters: Cluster[], max = FALLBACK_STORIES): string[] {

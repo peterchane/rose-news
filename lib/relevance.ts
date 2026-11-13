@@ -50,6 +50,7 @@ Score each headline 0-10 for whether it belongs in her email.
 - Smaller tech and business: startups, funding rounds, a lesser-known company's IPO, a company merely "backed by" a big one.
 - Weather anywhere outside the US, or minor US weather.
 - Sports filler: previews and pregame pieces for a game already played, photo galleries, live-stream listings, draft-stock speculation.
+- Sports business for leagues she doesn't follow (an NHL or NBA TV deal, league finances). That's sports, not the media business she cares about.
 - Entertainment-trade filler: honors lists and "power 100"-style rankings from niche or community-specific publications, agency signings, mid-level personnel moves, awards-season campaigning. Mentioning Disney or Netflix doesn't make it news.
 - Niche, local to somewhere else, or not really news: a landmark collapsing, a regional museum closing, a small accident far away, a feature or profile, a curiosity, a viral photo, an incremental update.
 

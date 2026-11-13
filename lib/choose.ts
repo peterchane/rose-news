@@ -34,11 +34,14 @@ export function isHerSports(c: Cluster): boolean {
  * collapsed sea arch was a science slot that needed filling.
  */
 
-/** How many top stories. A small set, by design — at five each, Rose said the email was "way too long." */
+/**
+ * How many top stories. A small set, by design. Rose said "way too long" at
+ * ten stories, and "still too long" at six.
+ */
 export const TOP_NEWS = 3;
 
 /** How many interest stories at most, so a busy USC week can't crowd out the news. */
-export const MAX_INTERESTS = 3;
+export const MAX_INTERESTS = 2;
 
 /**
  * Journalism, PR, pop culture and media — Peter: "she is also interested in

@@ -47,19 +47,20 @@ test('a low-ranked niche story never gets in just because a section had room', a
 });
 
 test('her interests get in even when they would never be top news', async () => {
-  const all = [
-    ...HEADLINES.slice(0, 8).map((h, i) => c('us', h, 40 - i)),
-    c('us', 'Los Angeles braces for a heat wave this weekend', 0.5),
-    c('business', 'Major newsrooms suspend shared White House coverage', 0.5),
-    c('usc', 'Lincoln Riley fired after fourth straight loss', 0.5),
+  // One at a time: there are only MAX_INTERESTS slots, and each kind must be
+  // able to win one against stories that outrank it.
+  const kinds: [string, ReturnType<typeof c>][] = [
+    ['LA', c('us', 'Los Angeles braces for a heat wave this weekend', 0.5)],
+    ['journalism', c('business', 'Major newsrooms suspend shared White House coverage', 0.5)],
+    ['a big USC story', c('usc', 'Lincoln Riley fired after fourth straight loss', 0.5)],
   ];
-  const { interests } = await chooseStories(all, approve);
-  const titles = interests.map((x) => x.title);
-  assert.ok(titles.some((t) => /Los Angeles/.test(t)), 'LA');
-  assert.ok(titles.some((t) => /newsrooms/.test(t)), 'journalism');
-  assert.ok(titles.some((t) => /Riley/.test(t)), 'a big USC story');
-  assert.ok(interests.length <= MAX_INTERESTS);
-  assert.ok(interests.every((x) => x.tier === 'interest'));
+  for (const [kind, story] of kinds) {
+    const all = [...HEADLINES.slice(0, 8).map((h, i) => c('us', h, 40 - i)), story];
+    const { interests } = await chooseStories(all, approve);
+    assert.ok(interests.some((x) => x.title === story.title), kind);
+    assert.ok(interests.length <= MAX_INTERESTS);
+    assert.ok(interests.every((x) => x.tier === 'interest'));
+  }
 });
 
 test('journalism, PR, pop culture and media count as her interests', () => {
