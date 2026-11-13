@@ -114,6 +114,9 @@ const MUST_BLOCK = [
   // A verdict is a court story, even when it's about journalists.
   'Two men found guilty of helping Iran try to ‘eliminate’ UK-based journalists',
   'Former mayor not guilty on all counts',
+  // A newspaper asking readers for questions is not news.
+  'What Do You Want to Know About New York Times Journalism and A.I.?',
+  'Ask our reporters anything about the midterms',
 ];
 
 test('word variants do not slip past the filters', () => {
@@ -134,6 +137,8 @@ const INNOCENT_LOOKALIKES = [
   'The company established a new research arm',
   'Riotous applause greeted the announcement',
   'Reality TV is her guilty pleasure, and she is not alone',
+  'Voters want to know what tariffs will cost them',
+  'Senators answer questions about the shutdown deal',
 ];
 
 test('innocent words containing a blocked stem are not filtered', () => {
