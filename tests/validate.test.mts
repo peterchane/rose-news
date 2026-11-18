@@ -825,6 +825,14 @@ test('a short brief on a thin day is fine', async () => {
   assert.ok(!problems.some(isFatal), 'three still sends');
 });
 
+test('a day with only two stories that passed sends a two-story email', async () => {
+  const { isFatal } = await import('../lib/write');
+  // Rejected stories are never added back, so some days two is all there is.
+  const two = CLUSTERS.slice(0, 2);
+  const brief = { ...ok(), paragraphs: [para(two[0].id, two[0].id), para(two[1].id, two[1].id)] };
+  assert.ok(!validateBrief(brief, two).some(isFatal));
+});
+
 test('the prompt tells the writer not to pad', async () => {
   const { SYSTEM_PROMPT } = await import('../lib/write');
   assert.match(SYSTEM_PROMPT, /short brief is better than a padded one/i);

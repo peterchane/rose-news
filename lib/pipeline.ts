@@ -72,6 +72,9 @@ export async function buildBrief(): Promise<PipelineResult> {
   const { top, interests } = await chooseStories(kept);
   console.log(`[choose] top: ${top.map((c) => c.title.slice(0, 34)).join(' | ')}`);
   console.log(`[choose] interests: ${interests.map((c) => c.title.slice(0, 34)).join(' | ') || 'none today'}`);
+  if (top.length + interests.length === 0) {
+    throw new ThinNewsDayError(`The relevance judge passed no stories from ${kept.length} candidates.`);
+  }
   // Renumbered so the ids the writer cites stay contiguous.
   const relevant = [...top, ...interests].map((c, i) => ({ ...c, id: i + 1 }));
 

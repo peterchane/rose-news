@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterByRelevance, KEEP_AT_LEAST, KEEP_AT_OR_ABOVE, type ScoreFn } from '../lib/relevance';
+import { filterByRelevance, KEEP_AT_OR_ABOVE, type ScoreFn } from '../lib/relevance';
 import type { Cluster } from '../lib/select';
 import type { Section } from '../lib/feeds';
 
@@ -33,14 +33,15 @@ test('low scorers are dropped, high scorers kept', async () => {
   const clusters = make(20);
   // Odd ids are niche; even ids are real news.
   const { kept, dropped } = await filterByRelevance(clusters, scoring((id) => (id % 2 ? 2 : 8)));
-  assert.ok(kept.every((c) => c.id % 2 === 0 || kept.length <= KEEP_AT_LEAST));
+  assert.ok(kept.every((c) => c.id % 2 === 0));
   assert.ok(dropped.every((d) => d.score < KEEP_AT_OR_ABOVE));
   assert.equal(kept.length + dropped.length, 20);
 });
 
-test('it never thins the list below the floor, even on a day it hates everything', async () => {
+test('a rejected story is never added back, even on a day it hates everything', async () => {
+  // Peter: "adding rejected stories is not ok."
   const { kept } = await filterByRelevance(make(20), scoring(() => 1));
-  assert.equal(kept.length, KEEP_AT_LEAST, 'the best of a bad day still gets written up');
+  assert.equal(kept.length, 0);
 });
 
 test('a story the scorer forgot to mention is kept, not dropped', async () => {
@@ -53,28 +54,16 @@ test('a story the scorer forgot to mention is kept, not dropped', async () => {
   }
 });
 
-test('a short list is not judged at all', async () => {
-  let called = false;
-  const spy: ScoreFn = async () => {
-    called = true;
-    return [];
-  };
-  const { kept } = await filterByRelevance(make(KEEP_AT_LEAST), spy);
-  assert.equal(called, false, 'nothing to thin, so no call and no cost');
-  assert.equal(kept.length, KEEP_AT_LEAST);
-});
-
 test('the holiday is never judged — it is added in code', async () => {
   const clusters = [...make(15), { ...make(1, 'jewish')[0], id: 99, title: 'Sukkot begins' }];
   const { kept } = await filterByRelevance(clusters, scoring(() => 0));
   assert.ok(kept.some((c) => c.id === 99));
 });
 
-test('a short list can be judged in full when the floor is zero', async () => {
-  // Her interests are a short keyword-matched list. With the default floor of
-  // ten they were never judged, which is how an Egyptian press protest got in
-  // as a "journalism interest".
-  const { kept, dropped } = await filterByRelevance(make(4), scoring((id) => (id === 2 ? 1 : 8)), 0);
+test('a short list is judged in full', async () => {
+  // A floor of ten once meant a short list was never judged, which is how an
+  // Egyptian press protest got in as a "journalism interest".
+  const { kept, dropped } = await filterByRelevance(make(4), scoring((id) => (id === 2 ? 1 : 8)));
   assert.equal(dropped.length, 1);
   assert.equal(dropped[0].cluster.id, 2);
   assert.equal(kept.length, 3);

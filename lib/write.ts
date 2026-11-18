@@ -555,7 +555,9 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   if (n < PREFERRED_MINIMUM || n > MAX_PARAGRAPHS) {
     // Ten paragraphs is a slightly long email; zero is no email at all. Only
     // the second is worth losing the day over.
-    const wildlyWrong = n < 3 || n > 12;
+    // On a day the judge passed only one or two stories, one or two paragraphs
+    // is the whole email, not a failure.
+    const wildlyWrong = n < Math.min(3, validIds.size) || n > 12;
     (wildlyWrong ? fatal : nit)(`Need 3-5 paragraphs, got ${n}.`);
   }
 
@@ -630,7 +632,7 @@ export function validateBrief(brief: Brief, clusters: Cluster[]): string[] {
   const allCited = new Set(
     brief.paragraphs.flatMap((p) => [...p.matchAll(CITATION_RE)].map((m) => Number(m[2]))),
   );
-  if (allCited.size < 3) {
+  if (allCited.size < Math.min(3, validIds.size)) {
     // Below three there is no email worth sending.
     fatal(`Only ${allCited.size} distinct stories cited. Cover more of the day's news.`);
   }

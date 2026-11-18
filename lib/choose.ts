@@ -95,10 +95,9 @@ export async function chooseStories(all: Cluster[], score?: ScoreFn): Promise<Ch
     .filter((c) => !NOT_NEWS.has(c.section))
     .sort((a, b) => b.score - a.score)
     .slice(0, TOP_POOL);
-  // The floor is TOP_NEWS, not the judge's default of ten: with only three
-  // top slots, a floor of ten kept stories the judge had rejected, and an
-  // 8-year-old's release from custody in San Diego went in as top news.
-  const vetted = (await filterByRelevance(pool, score, TOP_NEWS)).kept;
+  // Only what the judge passes. A floor that refilled the list put an
+  // 8-year-old's release from custody in San Diego in as top news.
+  const vetted = (await filterByRelevance(pool, score)).kept;
   const top = topStories(vetted, TOP_NEWS);
 
   // 2. Her interests: USC and her teams, Los Angeles and California, and
@@ -118,7 +117,7 @@ export async function chooseStories(all: Cluster[], score?: ScoreFn): Promise<Ch
     .slice(0, INTEREST_POOL);
   // Her interests are matched by keyword, so they get judged too: "Egyptian
   // journalists plan weekend protest" matched "journalist" and went in unvetted.
-  const judged = (await filterByRelevance(possible, score, 0)).kept;
+  const judged = (await filterByRelevance(possible, score)).kept;
 
   // A USC football result is never left out, and never judged away.
   const result = all

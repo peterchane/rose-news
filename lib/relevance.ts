@@ -26,9 +26,6 @@ export const RELEVANCE_MODEL = 'google/gemini-3-flash';
 /** Candidates scoring below this are dropped before the writer sees them. */
 export const KEEP_AT_OR_ABOVE = 5;
 
-/** Never thin the list below this, whatever the scores say. */
-export const KEEP_AT_LEAST = 10;
-
 const verdicts = z.object({
   scores: z.array(z.object({ id: z.number(), score: z.number() })),
 });
@@ -76,17 +73,17 @@ const defaultScore: ScoreFn = async (lines) => {
   return object.scores;
 };
 
+/**
+ * Keeps what the judge scores KEEP_AT_OR_ABOVE or higher, and nothing else.
+ * There used to be a floor of ten that refilled the list with rejected stories
+ * on a thin day. Peter: "adding rejected stories is not ok." A short email is
+ * the answer to a thin day.
+ */
 export async function filterByRelevance(
   clusters: Cluster[],
   score: ScoreFn = defaultScore,
-  /**
-   * Never thin below this many. Ten for the top-news pool; zero for her
-   * interests, which are already a short list and must be judged individually —
-   * an Egyptian press protest got in as a "journalism interest" unjudged.
-   */
-  floor: number = KEEP_AT_LEAST,
 ): Promise<{ kept: Cluster[]; dropped: { cluster: Cluster; score: number }[] }> {
-  if (clusters.length === 0 || clusters.length <= floor) return { kept: clusters, dropped: [] };
+  if (clusters.length === 0) return { kept: clusters, dropped: [] };
 
   // The holiday line is added in code, not judged.
   const judged = clusters.filter((c) => c.section !== 'jewish');
@@ -104,12 +101,7 @@ export async function filterByRelevance(
   // A story the scorer skipped is kept, not dropped. Silence is not a verdict.
   const scoreOf = (c: Cluster) => scores.get(c.id) ?? KEEP_AT_OR_ABOVE;
 
-  const ranked = [...judged].sort((a, b) => scoreOf(b) - scoreOf(a));
-  const keepIds = new Set(
-    ranked
-      .filter((c, i) => scoreOf(c) >= KEEP_AT_OR_ABOVE || i < floor)
-      .map((c) => c.id),
-  );
+  const keepIds = new Set(judged.filter((c) => scoreOf(c) >= KEEP_AT_OR_ABOVE).map((c) => c.id));
 
   const kept = clusters.filter((c) => c.section === 'jewish' || keepIds.has(c.id));
   const dropped = judged
