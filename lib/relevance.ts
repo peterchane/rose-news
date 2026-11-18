@@ -17,8 +17,9 @@ import type { Cluster } from './select';
  * disease stay as code in lib/ingest.ts — a model deciding whether a school
  * shooting reaches her is not acceptable at any accuracy.
  *
- * Fails open: if the call errors or times out, every candidate is kept. This
- * makes the brief better on a good day and must never cost her the email.
+ * Fails closed. If the judge can't be reached after a second try, the day is
+ * skipped and Peter gets an alert. It used to keep every candidate unjudged;
+ * Peter: "skip the day. never send random stuff."
  */
 
 export const RELEVANCE_MODEL = 'google/gemini-3-flash';
@@ -57,6 +58,14 @@ Be strict. A short email of real news beats a long one padded with niche items.`
 
 export type ScoreFn = (lines: string) => Promise<{ id: number; score: number }[]>;
 
+/** The judge couldn't be reached. Thrown so the run fails and alerts Peter. */
+export class RelevanceUnavailableError extends Error {
+  name = 'RelevanceUnavailableError';
+}
+
+/** One more try after a failure: a passing blip shouldn't cost her the day. */
+const SCORE_ATTEMPTS = 2;
+
 const defaultScore: ScoreFn = async (lines) => {
   const { object } = await generateObject({
     model: RELEVANCE_MODEL,
@@ -89,17 +98,25 @@ export async function filterByRelevance(
   const judged = clusters.filter((c) => c.section !== 'jewish');
   const lines = judged.map((c) => `#${c.id} [${c.section}] ${c.title}`).join('\n');
 
-  let scores: Map<number, number>;
-  try {
-    const result = await score(lines);
-    scores = new Map(result.map((r) => [r.id, r.score]));
-  } catch (err) {
-    console.warn('[relevance] scorer unavailable; keeping every candidate:', err instanceof Error ? err.message : err);
-    return { kept: clusters, dropped: [] };
+  let scores: Map<number, number> | null = null;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= SCORE_ATTEMPTS && !scores; attempt++) {
+    try {
+      const result = await score(lines);
+      scores = new Map(result.map((r) => [r.id, r.score]));
+    } catch (err) {
+      lastError = err;
+      console.warn(`[relevance] attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
+    }
   }
+  if (!scores) {
+    const why = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new RelevanceUnavailableError(`The relevance judge could not be reached, so nothing was sent: ${why}`);
+  }
+  const verdicts = scores;
 
-  // A story the scorer skipped is kept, not dropped. Silence is not a verdict.
-  const scoreOf = (c: Cluster) => scores.get(c.id) ?? KEEP_AT_OR_ABOVE;
+  // A story the judge skipped wasn't approved, so it doesn't go in.
+  const scoreOf = (c: Cluster) => verdicts.get(c.id) ?? 0;
 
   const keepIds = new Set(judged.filter((c) => scoreOf(c) >= KEEP_AT_OR_ABOVE).map((c) => c.id));
 

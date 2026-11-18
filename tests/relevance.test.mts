@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filterByRelevance, KEEP_AT_OR_ABOVE, type ScoreFn } from '../lib/relevance';
+import { filterByRelevance, KEEP_AT_OR_ABOVE, RelevanceUnavailableError, type ScoreFn } from '../lib/relevance';
 import type { Cluster } from '../lib/select';
 import type { Section } from '../lib/feeds';
 
@@ -19,14 +19,25 @@ const make = (n: number, section: Section = 'us'): Cluster[] =>
 const scoring = (fn: (id: number) => number): ScoreFn => async (lines) =>
   [...lines.matchAll(/#(\d+)/g)].map((m) => ({ id: Number(m[1]), score: fn(Number(m[1])) }));
 
-test('a failing scorer keeps every candidate — it can never cost her the email', async () => {
-  const clusters = make(20);
+test('a judge that stays down skips the day rather than send unjudged stories', async () => {
+  // Peter: "skip the day. never send random stuff."
+  let calls = 0;
   const dead: ScoreFn = async () => {
+    calls++;
     throw new Error('gateway timeout');
   };
-  const { kept, dropped } = await filterByRelevance(clusters, dead);
-  assert.equal(kept.length, 20);
-  assert.equal(dropped.length, 0);
+  await assert.rejects(filterByRelevance(make(20), dead), RelevanceUnavailableError);
+  assert.equal(calls, 2, 'one retry, then give up');
+});
+
+test('a single blip is retried, not fatal', async () => {
+  let calls = 0;
+  const flaky: ScoreFn = async (lines) => {
+    if (++calls === 1) throw new Error('gateway timeout');
+    return scoring(() => 8)(lines);
+  };
+  const { kept } = await filterByRelevance(make(5), flaky);
+  assert.equal(kept.length, 5);
 });
 
 test('low scorers are dropped, high scorers kept', async () => {
@@ -44,14 +55,11 @@ test('a rejected story is never added back, even on a day it hates everything', 
   assert.equal(kept.length, 0);
 });
 
-test('a story the scorer forgot to mention is kept, not dropped', async () => {
-  const clusters = make(20);
-  // Returns verdicts only for ids 1-5, all low. The rest were skipped.
-  const partial: ScoreFn = async () => [1, 2, 3, 4, 5].map((id) => ({ id, score: 1 }));
-  const { kept } = await filterByRelevance(clusters, partial);
-  for (let id = 6; id <= 20; id++) {
-    assert.ok(kept.some((c) => c.id === id), `#${id} was never judged, so it stays`);
-  }
+test('a story the judge skipped is not approved, so it stays out', async () => {
+  // Verdicts only for ids 1-5, all high. The rest were never judged.
+  const partial: ScoreFn = async () => [1, 2, 3, 4, 5].map((id) => ({ id, score: 9 }));
+  const { kept } = await filterByRelevance(make(20), partial);
+  assert.deepEqual(kept.map((c) => c.id), [1, 2, 3, 4, 5]);
 });
 
 test('the holiday is never judged — it is added in code', async () => {
