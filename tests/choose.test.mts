@@ -35,6 +35,16 @@ test('top news is the highest-ranked news, and only a handful of it', async () =
   assert.deepEqual(top.map((t) => t.score), [50, 49, 48, 47, 46].slice(0, TOP_NEWS));
 });
 
+test('a story the judge rejects is not top news when enough others pass', async () => {
+  const niche = c('us', '8-year-old Haitian boy released from federal custody in San Diego', 49.5);
+  const all = [...HEADLINES.slice(0, 8).map((h, i) => c('us', h, 50 - i)), niche];
+  const judge = async (lines: string) =>
+    [...lines.matchAll(/#(\d+)/g)].map((m) => ({ id: Number(m[1]), score: Number(m[1]) === niche.id ? 3 : 8 }));
+  const { top } = await chooseStories(all, judge);
+  assert.ok(!top.some((t) => t.id === niche.id), 'the judge said no');
+  assert.equal(top.length, TOP_NEWS);
+});
+
 test('a low-ranked niche story never gets in just because a section had room', async () => {
   const all = [
     ...HEADLINES.slice(0, 8).map((h, i) => c('us', h, 40 - i)),

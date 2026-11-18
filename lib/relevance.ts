@@ -50,6 +50,7 @@ Score each headline 0-10 for whether it belongs in her email.
 - Smaller tech and business: startups, funding rounds, a lesser-known company's IPO, a company merely "backed by" a big one.
 - Weather anywhere outside the US, or minor US weather.
 - Sports filler: previews and pregame pieces for a game already played, photo galleries, live-stream listings, draft-stock speculation.
+- One person's case: a single detainee, deportation, custody fight or rescue. Unless it's the story every major outlet is leading with, it's an anecdote, not news.
 - Reader call-outs: an outlet asking readers for questions, stories or tips ("What do you want to know about..."). Nothing happened.
 - Sports business for leagues she doesn't follow (an NHL or NBA TV deal, league finances). That's sports, not the media business she cares about.
 - Entertainment-trade filler: honors lists and "power 100"-style rankings from niche or community-specific publications, agency signings, mid-level personnel moves, awards-season campaigning. Mentioning Disney or Netflix doesn't make it news.
