@@ -299,6 +299,9 @@ const DISTRESSING = new RegExp(
     // Whole categories that were missing rather than merely mis-spelled.
     /\b(drown\w*|suffocat\w*|starv\w*|famine|malnourish\w*)\b/,
     /\b(terror\w*|hostage\w*|tortur\w*|atrocit\w*|massacre[ds]?)\b/,
+    // Mass killing, however a court or the UN names it. "World Court finds
+    // Myanmar committed genocide against Rohingya" reached her as a top story.
+    /\b(genocid\w*|ethnic cleansing|war crimes?|crimes against humanity)\b/,
     /\b(wounded|wounds?|maim\w*|mutilat\w*|amputat\w*)\b/,
     /\b(riots?|rioting|rioters?|looting|unrest|insurrect\w*|militia)\b/,
     // Capital punishment. "Alabama inmate to die by lethal injection" cleared

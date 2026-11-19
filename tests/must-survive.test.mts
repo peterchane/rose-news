@@ -117,6 +117,10 @@ const MUST_BLOCK = [
   // A newspaper asking readers for questions is not news.
   'What Do You Want to Know About New York Times Journalism and A.I.?',
   'Ask our reporters anything about the midterms',
+  // Mass killing, in a court's words.
+  'World Court Finds Myanmar Committed Genocide Against Rohingya',
+  'UN report accuses militia of ethnic cleansing',
+  'Tribunal opens war crimes case against former general',
 ];
 
 test('word variants do not slip past the filters', () => {
